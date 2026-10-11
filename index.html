@@ -240,11 +240,13 @@ html.other .app{padding-bottom:5.6rem}
 .crow.going{opacity:.35;transition:opacity .4s}
 .crow .ct{font-size:1.45rem;font-weight:700;line-height:1.18;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .chip{display:inline-block;margin-top:.25rem;font-size:1.05rem;font-weight:800;padding:.05rem .55rem;border-radius:.35rem;border:1.5px solid rgba(205,191,165,.45);color:var(--ivory-dim)}
+.cbody{min-width:0;display:flex;align-items:center;gap:.7rem;min-height:2rem}.cbody .ct{flex:1;min-width:0}
+.cbody .chip{margin-top:0;flex:none;max-width:52%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chip.late{background:rgba(168,36,62,.88);border-color:transparent;color:#fff2f2}
 .chip.today{background:var(--amber);border-color:transparent;color:#2b1806}
 .cnone{font-size:1.4rem;color:var(--ivory-dim);padding:.5rem 0}
 .stripc{grid-column:1/-1;position:relative;padding:1rem 1.5rem 0;min-height:0;overflow:hidden;text-align:left}
-.shead{display:flex;align-items:center;gap:.875rem;height:2.1rem}
+.shead{display:flex;align-items:center;gap:.875rem;height:2.1rem;padding:0 1rem;margin-top:.3rem}
 .shead h2{font-size:1.5rem;font-weight:800}
 .spill{white-space:nowrap;font-size:1.25rem;font-weight:800;padding:.12rem .75rem;border-radius:999px;background:var(--crimson);color:#fff2f2}
 .spill.calm{background:#2e4a32;color:#dcf0d9}
@@ -1342,7 +1344,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
     var tone = d.days !== null && d.days < 0 ? ' late' : d.days === 0 ? ' today' : '', going = !!S.ticking[d.id];
     return '<div class="crow' + tone + (going ? ' going' : '') + '" data-task="' + esc(d.id) + '" role="button" tabindex="0">' +
       (canEdit() ? '<button class="ck' + (going ? ' done' : '') + '" data-tick="' + esc(d.id) + '" aria-label="Mark ' + esc(d.title) + ' as done"><i></i></button>' : '<span class="ck"><i></i></span>') +
-      '<div style="min-width:0"><p class="ct">' + esc(d.title) + '</p>' + chipOf(d) + '</div></div>';
+      '<div class="cbody"><p class="ct">' + esc(d.title) + '</p>' + chipOf(d) + '</div></div>';
   }
 
   /* ---------------- Home: the day strip ---------------- */
@@ -2041,6 +2043,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
   }
   function showDock() { dockUntil = Date.now() + 8000; syncDock(); }
   document.addEventListener('pointerdown', function (e) {
+    if (e.target && e.target.closest && e.target.closest('#qj-grub-world')) { S.idle = now(); return; }
     S.idle = now();
     keepAwake();
     var wakeTap = SV.shown || !$('#night').hidden;
@@ -2118,6 +2121,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
 </script>
 <!-- GRUB COMPANION — self-contained; paste before </body> or include('Grub'). -->
 <style id="qj-grub-style">
+#qj-grub-world.on-saver{z-index:39}
 #qj-grub-world{position:fixed;inset:0;z-index:35;pointer-events:none;overflow:hidden;contain:layout style;--grub-ink:#182b23}
 #qj-grub-world[hidden],#qj-grub-menu[hidden]{display:none!important}
 #qj-grub-anchor{position:absolute;left:0;top:0;width:0;height:0;will-change:transform}
@@ -2141,10 +2145,16 @@ if (typeof module !== 'undefined') module.exports = QJ;
 #qj-grub-menu button:focus-visible{outline:2px solid #e5c681;outline-offset:1px}
 #qj-grub-menu .grub-wide{grid-column:1/-1}
 #qj-grub-menu .grub-dismiss{position:absolute;right:8px;top:6px;min-height:28px;width:28px;padding:0;border:0;background:none}
+.grub-jar{position:absolute;pointer-events:none;opacity:0;transform:translateY(14px) scale(.92);transform-origin:50% 100%;transition:opacity .35s,transform .35s}
+.grub-jar.on{opacity:1;transform:none}.grub-jar svg{width:100%;height:100%;display:block;overflow:visible}
+#qj-grub-jar-front .grub-lid{transition:transform .35s;transform-origin:74px 18px}#qj-grub-jar-front.open .grub-lid{transform:translate(10px,-14px) rotate(28deg)}
+#qj-grub-berry{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;will-change:transform}
+#qj-grub-berry svg{position:absolute;left:-11px;top:-24px;width:22px;height:24px;overflow:visible;filter:drop-shadow(0 0 6px #ff9aa866) drop-shadow(0 2px 2px #0006)}
 #qj-grub-live{position:fixed;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 @media(prefers-reduced-motion:reduce){#qj-grub-pet,#qj-grub-pet .grub-cheek{transition:none}}
 </style>
 <div id="qj-grub-world" hidden>
+ <div id="qj-grub-jar-back" class="grub-jar" aria-hidden="true"><svg viewBox="0 0 100 120"><defs><radialGradient id="qj-grub-jarglow" cx=".5" cy=".75" r=".6"><stop stop-color="#bfe9c9" stop-opacity=".22"/><stop offset="1" stop-color="#9fd4c0" stop-opacity=".04"/></radialGradient></defs><path d="M30 24h40v6c14 3 22 10 22 24v44c0 11-8 18-19 18H27c-11 0-19-7-19-18V54c0-14 8-21 22-24z" fill="url(#qj-grub-jarglow)"/><path d="M12 104c8-10 20-12 30-8 9-6 22-6 30 0 8-3 15 0 17 8-3 7-9 10-16 10H27c-7 0-12-3-15-10z" fill="#3f7a52"/><path d="M20 104q3-9 9-6M50 97q2-6 7-6M74 100q3-5 8-3" stroke="#77b76f" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="34" cy="101" r="2.4" fill="#e9d38a"/><circle cx="67" cy="99" r="2" fill="#f0b8b0"/></svg></div>
  <div id="qj-grub-anchor">
   <button id="qj-grub-pet" type="button" aria-label="Pet Grub. Right-click or press Shift Enter for his menu." data-state="idle">
    <svg viewBox="0 0 120 138" aria-hidden="true" focusable="false">
@@ -2180,6 +2190,8 @@ if (typeof module !== 'undefined') module.exports = QJ;
    <span id="qj-grub-spark" aria-hidden="true"></span>
   </button>
  </div>
+ <div id="qj-grub-berry" hidden aria-hidden="true"><svg viewBox="0 0 24 26"><path d="M12 7q2-6 8-6-1 6-8 6z" fill="#7fc47f" stroke="#1d3a26" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="16" r="9" fill="#e2566b" stroke="#3a1420" stroke-width="1.6"/><circle cx="8.6" cy="12.8" r="2.4" fill="#ffd9d6" opacity=".85"/><path d="M12 7v2" stroke="#1d3a26" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+ <div id="qj-grub-jar-front" class="grub-jar" aria-hidden="true"><svg viewBox="0 0 100 120"><g class="grub-lid"><rect x="26" y="4" width="48" height="14" rx="4" fill="#9a6a3c" stroke="#3b2412" stroke-width="2.5"/><path d="M31 9h38M31 13h38" stroke="#c99a62" stroke-width="1.6"/></g><path d="M28 18h44v3H28z" fill="#cfe8df" opacity=".6"/><path d="M30 21h40v9c14 3 22 10 22 24v44c0 11-8 18-19 18H27c-11 0-19-7-19-18V54c0-14 8-21 22-24z" fill="#d7f1ea" fill-opacity=".1" stroke="#d6efe6" stroke-opacity=".75" stroke-width="3"/><path d="M18 56c0-8 4-13 11-15M17 66v26" stroke="#fff" stroke-opacity=".5" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M80 62v30" stroke="#fff" stroke-opacity=".22" stroke-width="3" stroke-linecap="round"/><path d="M30 30h40" stroke="#d6efe6" stroke-opacity=".5" stroke-width="2"/></svg></div>
 </div>
 <button id="qj-grub-toggle" type="button" aria-label="Grub companion menu" aria-haspopup="true" aria-expanded="false" aria-controls="qj-grub-menu" title="Grub companion">❧</button>
 <section id="qj-grub-menu" role="dialog" aria-label="Grub companion" hidden>
@@ -2188,6 +2200,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
  <div class="grub-actions">
   <button type="button" data-grub="roam">Explore</button><button type="button" data-grub="sleep">Take a nap</button>
   <button type="button" data-grub="play">Play</button><button type="button" data-grub="hop">Hop</button>
+  <button type="button" data-grub="feed">Feed</button><button type="button" data-grub="jar">Put in jar</button>
   <button type="button" data-grub="pause">Pause</button><button type="button" data-grub="hide">Hide Grub</button>
  </div>
 </section>
@@ -2213,8 +2226,11 @@ if (typeof module !== 'undefined') module.exports = QJ;
  var timer=0,suppressUntil=0,destroyed=false;
  // mode: walk (on a surface), fly (hopping or falling), place (being set down), held (in your hand)
  var mode='walk',fly=null,place=null,grab=null,body={x:0,y:0,a:0};
+ // food: a berry that falls and waits for him. jar: his little glass home in the bottom-right corner.
+ var saverOn=false,food=null,meals=0,jar={x:0,floor:0,w:0,h:0,shown:false},jarBack=$('jar-back'),jarFront=$('jar-front'),berry=$('berry');
+ if(store.get('jar')==='true')mode='jar';
  function announce(s){$('live').textContent=s;}
- function save(){store.set('enabled',enabled);store.set('paused',paused);if(cur===screen&&mode==='walk')store.set('position',position);}
+ function save(){store.set('enabled',enabled);store.set('paused',paused);store.set('jar',mode==='jar'||(place&&place.jar)?'true':'false');if(cur===screen&&mode==='walk')store.set('position',position);}
  function half(){return size*.55;}
  function rr(p,L,T,R,B,rad){
   p.setAttribute('d','M '+(L+rad)+' '+T+' H '+(R-rad)+' Q '+R+' '+T+' '+R+' '+(T+rad)+' V '+(B-rad)+' Q '+R+' '+B+' '+(R-rad)+' '+B+' H '+(L+rad)+' Q '+L+' '+B+' '+L+' '+(B-rad)+' V '+(T+rad)+' Q '+L+' '+T+' '+(L+rad)+' '+T+' Z');
@@ -2222,14 +2238,20 @@ if (typeof module !== 'undefined') module.exports = QJ;
  function dimensions(){
   w=innerWidth;h=innerHeight;size=Math.max(44,Math.min(64,Math.min(w,h)*.08));
   pet.style.width=size+'px';pet.style.height=(size*138/120)+'px';
-  var l=6,r=Math.max(l+40,w-6),t=6,b=Math.max(t+40,h-6),rad=Math.max(14,Math.min(65,w*.15,h*.15));
+  // On the screensaver he walks along its gold frame line instead of the screen edge.
+  var e=saverOn?15:6,l=e,r=Math.max(l+40,w-e),t=e,b=Math.max(t+40,h-e),rad=saverOn?16:Math.max(14,Math.min(65,w*.15,h*.15));
   // The screen route runs along the bottom first, left to right, so the body stays inside.
   screen.path.setAttribute('d','M '+(l+rad)+' '+b+' H '+(r-rad)+' Q '+r+' '+b+' '+r+' '+(b-rad)+' V '+(t+rad)+' Q '+r+' '+t+' '+(r-rad)+' '+t+' H '+(l+rad)+' Q '+l+' '+t+' '+l+' '+(t+rad)+' V '+(b-rad)+' Q '+l+' '+b+' '+(l+rad)+' '+b+' Z');
   screen.length=screen.path.getTotalLength();screen.l=l;screen.r=r;screen.t=t;screen.b=b;screen.rad=rad;
+  // The jar stands on the floor, just left of the menu button.
+  jar.w=Math.round(size*1.45);jar.h=Math.round(jar.w*1.2);jar.x=Math.round(w-62-jar.w/2);jar.floor=b-jar.h*.09;
+  [jarBack,jarFront].forEach(function(el){el.style.width=jar.w+'px';el.style.height=jar.h+'px';el.style.left=(jar.x-jar.w/2)+'px';el.style.top=(b-jar.h)+'px';});
+  showJar(mode==='jar'||(place&&place.jar));
   refreshBoxes();draw(0);
  }
+ function showJar(on){jar.shown=on;jarBack.classList.toggle('on',on);jarFront.classList.toggle('on',on);}
  function refreshBoxes(){
-  var list=document.querySelectorAll('.card'),next=[];
+  var list=saverOn?[document.getElementById('spanel')].filter(Boolean):document.querySelectorAll('.card'),next=[];
   for(var i=0;i<list.length;i++){
    var el=list[i];if(el.parentElement&&el.parentElement.closest('.card'))continue;
    if(!el.offsetParent&&getComputedStyle(el).position!=='fixed')continue;
@@ -2249,10 +2271,12 @@ if (typeof module !== 'undefined') module.exports = QJ;
  }
  function pose(){
   if(mode==='walk')return poseOn(cur,position);
+  if(mode==='jar')return {x:jar.x,y:jar.floor,angle:0};
   // In the air the body centre moves; the feet hang half a body below it.
   var hh=half();return {x:body.x-Math.sin(body.a*RAD)*hh,y:body.y+Math.cos(body.a*RAD)*hh,angle:body.a};
  }
  function liftOff(){
+  if(mode==='jar'){body.x=jar.x;body.y=jar.floor-half()*.7;body.a=0;return;}
   var p=poseOn(cur,position),hh=half();
   body.x=p.x+Math.sin(p.angle*RAD)*hh;body.y=p.y-Math.cos(p.angle*RAD)*hh;body.a=p.angle>180?p.angle-360:p.angle;
  }
@@ -2267,7 +2291,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
   setState('idle',.7+Math.random()*.8);
  }
  function startFly(vx,vy){
-  if(mode==='walk')liftOff();
+  if(mode==='walk'||mode==='jar')liftOff();
   mode='fly';fly={vx:vx,vy:vy};if(Math.abs(vx)>20)direction=vx>0?1:-1;setState('fly',99);
  }
  function startDrop(){
@@ -2276,7 +2300,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
   startFly(Math.sin(p.angle*RAD)*90,-Math.cos(p.angle*RAD)*90);
  }
  function hopTo(top,x){
-  if(mode==='walk')liftOff();
+  if(mode==='walk'||mode==='jar')liftOff();
   var hh=half(),tx=x,ty=top.y-hh,dx=tx-body.x,dy=ty-body.y,T=Math.max(.45,Math.min(1.1,.45+Math.sqrt(dx*dx+dy*dy)/1400));
   startFly(dx/T,dy/T-G*T/2);
  }
@@ -2302,15 +2326,68 @@ if (typeof module !== 'undefined') module.exports = QJ;
  }
  function stepPlace(dt){
   place.t+=dt;var k=Math.min(1,place.t/place.T),e=1-Math.pow(1-k,3);
-  var p=poseOn(place.s,place.p),hh=half(),tx=p.x+Math.sin(p.angle*RAD)*hh,ty=p.y-Math.cos(p.angle*RAD)*hh;
+  var p=place.jar?{x:jar.x,y:jar.floor,angle:0}:poseOn(place.s,place.p),hh=half()*(place.jar?.7:1),tx=p.x+Math.sin(p.angle*RAD)*hh,ty=p.y-Math.cos(p.angle*RAD)*hh;
   var da=((p.angle-place.a0+540)%360)-180;
-  body.x=place.x0+(tx-place.x0)*e;body.y=place.y0+(ty-place.y0)*e-Math.sin(k*Math.PI)*18;body.a=place.a0+da*e;
-  if(k>=1){cur=place.s;position=place.p;mode='walk';place=null;setState('happy',1.6);}
+  body.x=place.x0+(tx-place.x0)*e;body.y=place.y0+(ty-place.y0)*e-Math.sin(k*Math.PI)*(place.arc||18);body.a=place.a0+da*e;
+  if(k>=1){if(place.jar){mode='jar';place=null;setState('happy',1.6);save();return;}cur=place.s;position=place.p;mode='walk';place=null;setState('happy',1.6);}
  }
  function nearestOn(s,x,y){
   var best=0,bd=1e12,n=Math.max(40,Math.round(s.length/6));
   for(var i=0;i<n;i++){var pt=s.path.getPointAtLength(i/n*s.length),d=(pt.x-x)*(pt.x-x)+(pt.y-y)*(pt.y-y);if(d<bd){bd=d;best=i/n;}}
   return best;
+ }
+ // ---- Jar ----
+ function intoJar(){
+  if(mode==='jar'||(place&&place.jar))return;
+  paused=false;
+  if(mode==='walk')liftOff();
+  if(grab){clearTimeout(grab.hold);grab=null;}
+  clearFood();showJar(true);fly=null;
+  direction=body.x<jar.x?1:-1;
+  mode='place';place={jar:true,t:0,T:.75,arc:Math.min(220,Math.abs(body.y-jar.floor)*.4+80),x0:body.x,y0:body.y,a0:body.a};setState('fly',99);
+  announce('Grub hops into his jar.');save();kick();
+ }
+ function outOfJar(){
+  if(mode!=='jar')return;
+  jarFront.classList.add('open');setTimeout(function(){jarFront.classList.remove('open');showJar(false);},700);
+  direction=-1;startFly(-260,-900);announce('Grub climbs out of his jar.');save();kick();
+ }
+ // ---- Food ----
+ function clearFood(){food=null;berry.hidden=true;}
+ function feed(){
+  if(food)return;
+  var p=pose(),inJar=mode==='jar';
+  var x=inJar?jar.x+direction*size*.28:Math.max(size,Math.min(w-size,p.x+direction*size*1.6));
+  var y=inJar?(jar.floor-jar.h*.7):-30,top=null;
+  if(!inJar){tops().forEach(function(t){if(x>=t.x0+10&&x<=t.x1-10&&t.y>y&&(!top||t.y<top.y))top=t;});}
+  if(!inJar&&!top)top=tops()[0];
+  if(!inJar){x=Math.max(top.x0+size*.45,Math.min(top.x1-size*.45,x));}
+  food={x:x,y:y,vy:0,top:inJar?{s:'jar',y:jar.floor}:top,landed:false,eaten:0};
+  berry.hidden=false;berry.style.transform='translate('+x+'px,'+y+'px)';
+  if(state==='sleep')setState('wake',1);
+  announce('A berry drops in for Grub.');kick();
+ }
+ function stepFood(dt){
+  if(!food)return;
+  if(!food.landed){
+   food.vy+=G*.7*dt;food.y+=food.vy*dt;
+   if(food.y>=food.top.y){food.y=food.top.y;if(food.vy>260){food.vy=-food.vy*.28;}else{food.landed=true;food.vy=0;}}
+  }
+  var k=state==='eat'?Math.max(0,1-age/duration):1;
+  berry.style.transform='translate('+food.x.toFixed(1)+'px,'+food.y.toFixed(1)+'px) scale('+k.toFixed(3)+')';
+ }
+ function seekFood(){
+  // Returns true while Grub is busy getting to his berry.
+  if(!food||!food.landed||state==='eat'||state==='sleep')return false;
+  if(mode==='jar'){direction=food.x>jar.x?1:-1;setState('eat',2.6);return true;}
+  if(mode!=='walk')return true;
+  var p=poseOn(cur,position),dx=food.x-p.x;
+  if(cur===food.top.s&&Math.abs(p.angle)<20){
+   if(Math.abs(dx)<size*.42){direction=dx>0?1:-1;setState('eat',2.6);return true;}
+   direction=dx>0?1:-1;if(state!=='crawl')setState('crawl',99);return true;
+  }
+  if(Math.abs(p.angle)<20)hopTo(food.top,food.x-(food.x>p.x?1:-1)*size*.4);else startDrop();
+  return true;
  }
  function quiet(){return reduced.matches||paused;}
  function setState(s,seconds){
@@ -2320,7 +2397,16 @@ if (typeof module !== 'undefined') module.exports = QJ;
  function upright(){return mode==='walk'&&Math.abs(poseOn(cur,position).angle)<20;}
  function nextState(){
   autonomous++;
+  if(state==='eat'){meals++;clearFood();setState('happy',2.6);announce(meals>1?'Grub has had '+meals+' berries. Delicious.':'Grub munches his berry. Delicious.');return;}
   if(state==='sleep'){setState('wake',2.4);return;}
+  if(mode==='jar'){
+   // Inside the jar he just snoozes, wiggles and looks around.
+   var r=Math.random();
+   if(state==='wake'||state==='happy'||state==='play'||state==='peek'){setState('idle',3+Math.random()*4);return;}
+   if(r<.25){setState('sleep',20+Math.random()*15);return;}
+   if(r<.5){setState('play',2.5);return;}
+   direction*=-1;setState('idle',3+Math.random()*4);return;
+  }
   if(state==='crawl'){
    // Off he goes: hop to another box from a flat top, or let go from a side or ceiling.
    if(upright()&&Math.random()<.4&&hopSomewhere())return;
@@ -2343,18 +2429,19 @@ if (typeof module !== 'undefined') module.exports = QJ;
  function draw(dt){
   var p=pose(),quiet_=quiet(),m=quiet_?0:1;
   var wave=Math.sin(step),breath=Math.sin(clock*2.0),sleep=state==='sleep',playing=state==='play',happy=state==='happy',held=state==='held',flying=state==='fly';
-  var hop=mode!=='walk'?0:playing?Math.max(0,Math.sin(age*5.2))*11:happy?Math.max(0,Math.sin(age*7))*5:0;
+  var eating=state==='eat',inJar=mode==='jar';
+  var hop=mode!=='walk'&&!inJar?0:inJar&&playing?Math.max(0,Math.sin(age*5.2))*5:playing?Math.max(0,Math.sin(age*5.2))*11:happy?Math.max(0,Math.sin(age*7))*5:0;
   var tuck=state==='peek'&&mode==='walk'?(1-Math.min(1,age/2.4))*size*.72:0;
   var sway=held?Math.sin(clock*7)*7:0;
   anchor.style.transform='translate('+p.x.toFixed(2)+'px,'+p.y.toFixed(2)+'px) rotate('+(p.angle+sway).toFixed(2)+'deg)';
-  pet.style.transform='translate(-50%,'+((tuck-hop)*m).toFixed(2)+'px)';
+  pet.style.transform='translate(-50%,'+((tuck-hop)*m).toFixed(2)+'px)'+(inJar||(place&&place.jar&&place.t/place.T>.6)?' scale(.7)':'');
   $('facing').setAttribute('transform',direction>0?'translate(120 0) scale(-1 1)':'');
   var crawl=(state==='crawl'||held||flying)?1:0;
   var sy=sleep ? .91+breath*.012*m : flying&&fly&&fly.vy<0?1.08:1+wave*.045*crawl*m+breath*.006*m;
   var sx=sleep?1.05:flying&&fly&&fly.vy<0?.94:1-wave*.055*crawl*m;
   $('body').setAttribute('transform','translate(60 127) scale('+sx.toFixed(4)+' '+sy.toFixed(4)+') translate(-60 -127)');
-  var headY=sleep?13+breath*.55*m:crawl?wave*1.8*m:-breath*.7*m;
-  var angle=sleep?13:happy?-5+Math.sin(age*9)*4*m:playing?Math.sin(age*5.2)*7*m:state==='idle'?Math.sin(age*1.3)*3*m:wave*2*crawl*m;
+  var headY=sleep?13+breath*.55*m:eating?4+Math.abs(Math.sin(age*16))*3*m:crawl?wave*1.8*m:-breath*.7*m;
+  var angle=sleep?13:eating?8+Math.sin(age*16)*7*m:happy?-5+Math.sin(age*9)*4*m:playing?Math.sin(age*5.2)*7*m:state==='idle'?Math.sin(age*1.3)*3*m:wave*2*crawl*m;
   $('head').setAttribute('transform','translate('+(sleep?6:0)+' '+headY.toFixed(2)+') rotate('+angle.toFixed(2)+' 62 66)');
   $('arm').setAttribute('transform',happy||playing||held||flying?'rotate('+(-18+Math.sin(age*9)*17*m).toFixed(2)+' 39 69)':'');
   $('tail').setAttribute('transform','rotate('+((sleep?-8:0)+(crawl?wave*6:breath*2)*m).toFixed(2)+' 70 113)');
@@ -2368,37 +2455,24 @@ if (typeof module !== 'undefined') module.exports = QJ;
   pet.setAttribute('aria-label',sleep?'Wake Grub. He is sleeping.':'Pet Grub. Hold and drag to move him. Right-click or press Shift Enter for his menu.');
  }
  function visibleOverlay(){
-  return ['scrim','day','night','saver'].some(function(id){var e=document.getElementById(id);return e&&!e.hidden&&getComputedStyle(e).display!=='none';});
+  return ['scrim','day','night'].some(function(id){var e=document.getElementById(id);return e&&!e.hidden&&getComputedStyle(e).display!=='none';});
  }
  function checkEnvironment(){
-  blocked=visibleOverlay();root.hidden=!enabled||blocked;toggle.hidden=blocked;if(blocked){closeMenu(false);if(grab)release();}
+  blocked=visibleOverlay();root.hidden=!enabled||blocked;
+  var sv=document.getElementById('saver'),on=!!(sv&&!sv.hidden&&getComputedStyle(sv).display!=='none');
+  if(on!==saverOn){saverOn=on;root.classList.toggle('on-saver',on);dimensions();}
+  toggle.hidden=blocked||saverOn;if(saverOn)closeMenu(false);if(blocked){closeMenu(false);if(grab)release();}
   if(blocked||!enabled)return;
   refreshBoxes();
-  if(mode!=='walk'){pet.style.opacity='1';pet.style.pointerEvents='auto';return;}
-  if(menu.hidden){
-   var box=pet.getBoundingClientRect(),nav=document.getElementById('nav');
-   // Avoid the navigation dock and the small controls; he may crawl over the big boxes.
-   var obstacles=[],soft=[];
-   if(nav&&nav.classList.contains('show'))obstacles.push(nav.getBoundingClientRect());
-   document.querySelectorAll('button,a[href],input,select,textarea,[role="button"]').forEach(function(el){
-    if(el===pet||el===toggle||menu.contains(el)||el.closest('#nav'))return;
-    var r=el.getBoundingClientRect();if(!r.width||!r.height)return;
-    if(r.width*r.height>40000)soft.push(r);else obstacles.push(r);
-   });
-   var focused=document.activeElement;
-   if(focused&&focused!==document.body&&!focused.closest('#qj-grub-menu')&&focused!==pet&&focused!==toggle&&focused.matches('button,input,select,textarea,a'))obstacles.push(focused.getBoundingClientRect());
-   var hit=function(r){return box.left<r.right+8&&box.right>r.left-8&&box.top<r.bottom+8&&box.bottom>r.top-8;};
-   var collision=obstacles.some(hit),over=soft.some(function(r){return box.left<r.right&&box.right>r.left&&box.top<r.bottom&&box.bottom>r.top;});
-   if(!collision&&over){pet.style.opacity='.85';pet.style.pointerEvents='auto';}
-   else if(collision){pet.style.opacity='.16';pet.style.pointerEvents='none';if(clock>avoidUntil&&!paused&&!reduced.matches){if(!upright()&&Math.random()<.5)startDrop();else{direction*=-1;setState('crawl',4);}avoidUntil=clock+4;}}
-   else{pet.style.opacity='1';pet.style.pointerEvents='auto';}
-  }
+  // He is always fully visible; he is allowed to sit in front of things.
+  pet.style.opacity='1';pet.style.pointerEvents='auto';
+  if(food&&food.top&&food.top.s!==screen&&food.top.s!=='jar'&&boxes.indexOf(food.top.s)<0)clearFood();
  }
  function loop(ts){
   raf=0;if(destroyed||document.hidden||!enabled)return;
   var dt=last?Math.min((ts-last)/1000,.05):0;last=ts;
   if(ts>checkAt){checkAt=ts+300;checkEnvironment();}
-  var busy=mode!=='walk';
+  var busy=mode==='fly'||mode==='place'||mode==='held';
   if(!blocked&&(menu.hidden||busy)){
    if(!paused||busy){
     clock+=dt;age+=dt;
@@ -2406,27 +2480,30 @@ if (typeof module !== 'undefined') module.exports = QJ;
     if(mode==='fly'){stepFly(dt);step+=dt*16;}
     else if(mode==='place'){stepPlace(dt);step+=dt*12;}
     else if(mode==='held'){step+=dt*14;}
-    else if(!reduced.matches&&!paused){
-     if(state==='crawl'){
+    else if(mode==='jar'){if(!paused){seekFood();if(age>=duration)nextState();}}
+    else if(!paused){
+     var hungry=seekFood();
+     if(state==='crawl'&&mode==='walk'&&!reduced.matches){
       if(!roomAhead()){if(upright())direction*=-1;else{startDrop();}}
       if(mode==='walk'){
-       var speed=30*(size/82)*(1+.28*Math.sin(step));
+       var speed=30*(size/82)*(1+.28*Math.sin(step))*(hungry?2.2:1);
        position=((position+direction*speed*dt/cur.length)%1+1)%1;step+=dt*7;
       }
      }
-     if(mode==='walk'&&age>=duration)nextState();
+     if(mode==='walk'&&age>=duration&&(!hungry||state==='eat')&&(!reduced.matches||state==='eat'))nextState();
     }
    }
+   stepFood(dt);
    draw(dt);
   }
-  var still=mode==='walk'&&(paused||reduced.matches);
+  var still=(mode==='walk'||mode==='jar')&&(paused||reduced.matches)&&!food;
   if(still||blocked){timer=setTimeout(function(){timer=0;start();},250);}else raf=requestAnimationFrame(loop);
  }
  function start(){if(!raf&&!timer&&!document.hidden&&enabled&&!destroyed){last=0;raf=requestAnimationFrame(loop);}}
  function kick(){cancelAnimationFrame(raf);clearTimeout(timer);raf=0;timer=0;start();}
  function closeMenu(focus){menu.hidden=true;toggle.setAttribute('aria-expanded','false');if(focus)toggle.focus();}
  function openMenu(){menu.hidden=false;toggle.setAttribute('aria-expanded','true');refreshButtons();menu.querySelector('[data-grub=roam]').focus();}
- function refreshButtons(){menu.querySelector('[data-grub=hide]').textContent=enabled?'Hide Grub':'Bring Grub back';menu.querySelector('[data-grub=pause]').textContent=paused?'Resume':'Pause';}
+ function refreshButtons(){menu.querySelector('[data-grub=hide]').textContent=enabled?'Hide Grub':'Bring Grub back';menu.querySelector('[data-grub=pause]').textContent=paused?'Resume':'Pause';menu.querySelector('[data-grub=jar]').textContent=mode==='jar'?'Let him out':'Put in jar';}
  function act(action){
   if(action==='close'){closeMenu(true);return;}
   if(action==='hide'){enabled=!enabled;root.hidden=!enabled;if(!enabled){cancelAnimationFrame(raf);clearTimeout(timer);timer=0;raf=0;}else{setState('peek',3);start();}announce(enabled?'Grub is back.':'Grub is tucked away.');}
@@ -2434,17 +2511,21 @@ if (typeof module !== 'undefined') module.exports = QJ;
   else{enabled=true;paused=false;root.hidden=false;
    if(action==='sleep'){setState('sleep',35);announce('Grub curls up for a nap.');}
    if(action==='play'){setState('play',4.5);announce('Grub does a happy little wiggle.');}
+   if(action==='feed'){feed();}
+   if(action==='jar'){if(mode==='jar')outOfJar();else intoJar();}
+   if((action==='roam'||action==='hop')&&mode==='jar'){outOfJar();action='';}
    if(action==='roam'){setState(reduced.matches?'idle':'crawl',14);announce(reduced.matches?'Grub is awake. Reduced motion keeps him settled.':'Grub is off exploring.');}
    if(action==='hop'&&mode==='walk'){if(upright())hopSomewhere();else startDrop();}
    start();
   }
   refreshButtons();save();closeMenu(true);draw(0);
  }
- function petGrub(){paused=false;if(state==='sleep'){setState('wake',2.4);announce('Grub wakes up and stretches.');}else if(mode==='walk'){setState('happy',3);announce('Grub likes his little head pat.');}save();draw(0);}
+ function petGrub(){paused=false;if(state==='sleep'){setState('wake',2.4);announce('Grub wakes up and stretches.');}else if(mode==='walk'||mode==='jar'){setState('happy',3);announce('Grub likes his little head pat.');}save();draw(0);}
  // Hold and drag: a quick tap is a pat; holding or dragging picks him up.
  function pickUp(){
   if(!grab||grab.up)return;grab.up=true;
-  if(mode==='walk')liftOff();
+  if(mode==='jar'){liftOff();clearFood();}
+  else if(mode==='walk')liftOff();
   mode='held';fly=null;place=null;grab.vx=0;grab.vy=0;
   pet.style.opacity='1';pet.style.pointerEvents='auto';setState('held',99);announce('You picked Grub up.');
   follow(grab.x,grab.y,0);kick();
@@ -2461,6 +2542,9 @@ if (typeof module !== 'undefined') module.exports = QJ;
   if(!g.up)return;suppressUntil=Date.now()+450;
   refreshBoxes();
   // Let go over (or right next to) a box: he settles onto its nearest edge. Elsewhere he drops.
+  // Let go over his jar spot and he goes back in.
+  if(jar.shown&&Math.abs(body.x-jar.x)<jar.w*.8&&body.y>h-jar.h*1.6){intoJar();return;}
+  if(jar.shown)showJar(false);
   var target=null,pad=size*.6;
   boxes.forEach(function(b){if(body.x>b.l-pad&&body.x<b.r+pad&&body.y>b.t-pad&&body.y<b.b+pad)target=b;});
   if(target){var inside=body.x>target.l+target.rad&&body.x<target.r-target.rad&&body.y>target.t&&body.y<target.b;
@@ -2500,7 +2584,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
  // Observe only visibility attributes of app overlays, never the animated SVG.
  var observer=new MutationObserver(checkEnvironment);
  ['scrim','day','night','saver','nav'].forEach(function(id){var el=document.getElementById(id);if(el)observer.observe(el,{attributes:true,attributeFilter:['hidden','class','style']});});
- window.QJ_GRUB={action:act,hop:function(){if(mode==='walk'){if(upright())hopSomewhere();else startDrop();kick();}},state:function(){var p=pose();return {state:state,mode:mode,on:cur===screen?'screen':(cur.el.className||'box'),enabled:enabled,paused:paused,position:position,reducedMotion:reduced.matches,blocked:blocked,edge:p,size:size,boxes:boxes.length};}};
+ window.QJ_GRUB={action:act,hop:function(){if(mode==='walk'){if(upright())hopSomewhere();else startDrop();kick();}},state:function(){var p=pose();return {state:state,mode:mode,on:mode==='jar'?'jar':cur===screen?'screen':(cur.el.className||'box'),food:food?{x:food.x,y:food.y,landed:food.landed}:null,meals:meals,enabled:enabled,paused:paused,position:position,reducedMotion:reduced.matches,blocked:blocked,edge:p,size:size,boxes:boxes.length};}};
  if(reduced.matches)setState('idle',5);dimensions();checkEnvironment();refreshButtons();start();
 })();
 </script>
