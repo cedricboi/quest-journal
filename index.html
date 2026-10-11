@@ -298,6 +298,7 @@ html.other .app{padding-bottom:5.6rem}
 .saver{position:fixed;inset:0;z-index:38;background:#05070d;overflow:hidden;opacity:0;transition:opacity 1.2s ease}
 .saver.on{opacity:1}
 .saver video,.saver .sart{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.saver video{opacity:0;transition:opacity .8s}.saver video.ok{opacity:1}
 .saver .sart{background:var(--art-cavern,none) center/cover no-repeat}
 @media (prefers-reduced-motion:no-preference){.saver .sart{animation:pan 70s ease-in-out infinite alternate}}
 @keyframes pan{from{transform:scale(1.04) translateX(-1.5%)}to{transform:scale(1.12) translateX(1.5%)}}
@@ -1907,31 +1908,58 @@ if (typeof module !== 'undefined') module.exports = QJ;
     pn.innerHTML = h;
     fitText($('.nroom', pn), null, 0.45);
   }
+  // One video element, kept for the whole session. It is started only once it is on screen, and nudged
+  // again whenever the tablet pauses it, since some tablets hold back videos that start while hidden.
+  SV.vstate = '';
+  function saverVideo(create) {
+    var el = $('#saver'), v = $('video', el);
+    if (!v && create) {
+      v = document.createElement('video');
+      v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
+      v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true');
+      v.addEventListener('playing', function () { SV.vstate = 'playing'; v.classList.add('ok'); });
+      v.addEventListener('pause', function () { if (SV.shown) setTimeout(kickVideo, 400); });
+      v.addEventListener('canplay', function () { if (SV.shown) kickVideo(); });
+      v.addEventListener('error', function () { SV.vstate = 'error ' + (v.error ? v.error.code : '?'); v.classList.remove('ok'); });
+      el.insertBefore(v, el.firstChild);
+    }
+    return v;
+  }
+  function kickVideo() {
+    var v = saverVideo(false);
+    if (!v || !SV.shown || !v.getAttribute('src')) return;
+    try {
+      var pr = v.play();
+      if (pr && pr.catch) pr.catch(function (e) { SV.vstate = 'blocked: ' + ((e && e.name) || 'unknown'); });
+    } catch (e) { SV.vstate = 'blocked: ' + e.name; }
+  }
+  // A tap counts as permission to play, so start and pause the video once on the first tap of the session.
+  var vUnlocked = false;
+  function unlockVideo() {
+    if (vUnlocked) return;
+    var src = saverSrc(), v;
+    if (!src) return;
+    v = saverVideo(true);
+    if (v.getAttribute('src') !== src) v.setAttribute('src', src);
+    try { var pr = v.play(); if (pr && pr.then) pr.then(function () { vUnlocked = true; if (!SV.shown) v.pause(); }, function () { }); } catch (e) { }
+  }
   function showSaver() {
     if (!S.st) return;
-    var el = $('#saver'), src = saverSrc(), v = $('video', el);
+    var el = $('#saver'), src = saverSrc(), v = saverVideo(!!src);
     S.view = 'home'; closeDay();
     if (src) {
-      if (!v) {
-        v = document.createElement('video');
-        v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true;
-        v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true');
-        v.onerror = function () { v.remove(); };
-        el.insertBefore(v, el.firstChild);
-      }
-      if (v.getAttribute('src') !== src) v.setAttribute('src', src);
-      var pr = v.play(); if (pr && pr.catch) pr.catch(function () { });
-    } else if (v) v.remove();
+      if (v.getAttribute('src') !== src) { v.classList.remove('ok'); v.setAttribute('src', src); }
+    } else if (v) { v.removeAttribute('src'); v.classList.remove('ok'); try { v.load(); } catch (e) { } }
     render();
     renderSaver();
     el.hidden = false;
     SV.shown = true;
-    requestAnimationFrame(function () { requestAnimationFrame(function () { el.classList.add('on'); }); });
+    requestAnimationFrame(function () { requestAnimationFrame(function () { el.classList.add('on'); kickVideo(); }); });
   }
   function hideSaver() {
     var el = $('#saver'), v = $('video', el);
     el.classList.remove('on'); el.hidden = true; SV.shown = false;
-    if (v) v.pause();
+    if (v) { try { v.pause(); } catch (e) { } }
     S.idle = now();
   }
   function mb(n) { return n ? (n / 1048576).toFixed(n < 10485760 ? 1 : 0) + ' MB' : ''; }
@@ -1942,6 +1970,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
     var now_ = which === 'mine' ? 'Playing the video chosen on this tablet: ' + SV.name + (SV.size ? ' (' + mb(SV.size) + ')' : '') + '.'
       : which === 'cloud' ? 'Playing your video from the control panel: ' + CV.name + (CV.size ? ' (' + mb(CV.size) + ')' : '') + '. A copy is kept on this tablet.'
       : which === 'url' ? 'Playing the video link from the control panel.' : which === 'folder' ? 'Playing screensaver.mp4 from the app’s folder.' : 'No video yet, so it shows the cavern art.';
+    if (SV.vstate && which !== 'art') now_ += ' Last time it ' + (SV.vstate === 'playing' ? 'played normally.' : 'could not play (' + SV.vstate + ').');
     if (CV.busy) now_ += ' Downloading your video from the control panel: ' + Math.round(CV.pct * 100) + '%.';
     else if (CV.err && S.st && S.st.saverVideo) now_ += ' Your video from the control panel did not download (' + CV.err + '). It tries again in a few minutes.';
     var canFull = !!(document.fullscreenEnabled && !document.fullscreenElement && !(window.matchMedia && matchMedia('(display-mode: fullscreen)').matches));
@@ -2001,6 +2030,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
     if (SV.shown) hideSaver();
     if (!$('#night').hidden) { S.woke = now(); $('#night').hidden = true; render(); }
     if (wakeTap) { SV.swallow = Date.now() + 800; e.preventDefault(); e.stopPropagation(); }
+    else unlockVideo();
     showDock();
   }, true);
   // The tap that wakes the screen should not also press whatever was underneath.
