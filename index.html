@@ -73,13 +73,18 @@
     addEventListener('message', function (e) {
       var h = '';
       try { h = new URL(e.origin).hostname; } catch (x) { }
-      if (!/(^|\.)googleusercontent\.com$|^script\.google\.com$/.test(h) || !e.data || e.data.qj !== 'alive') return;
+      if (!/(^|\.)googleusercontent\.com$|^script\.google\.com$/.test(h) || !e.data) return;
+      // "Reload screen" on the journal asks the app to reload the whole page, since Google's page goes blank if it reloads itself.
+      if (e.data.qj === 'reload') { reload(); return; }
+      if (e.data.qj !== 'alive') return;
       alive = Date.now(); ov.hidden = true;
+      try { e.source.postMessage({ qj: 'shell' }, e.origin); } catch (x) { }
     });
     setInterval(function () {
       var now = Date.now();
       if (!alive && now - started > WAIT && ov.hidden) show();
-      else if (alive && now - alive > 5 * 60000) reload();
+      // The journal says "alive" every half minute. If it stops (for example the page went blank), load it again.
+      else if (alive && now - alive > 75000) reload();
     }, 2000);
     addEventListener('online', function () { if (!ov.hidden) reload(); });
     // Keep the screen on while the app is open.
@@ -1931,6 +1936,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
   }
   function mb(n) { return n ? (n / 1048576).toFixed(n < 10485760 ? 1 : 0) + ' MB' : ''; }
   function settingsSheet() {
+    CV.retry = 0; syncCloudVideo();
     var sv = saverCfg(), which = saverWhich();
     var when = sv.on === false ? 'Off. Turn it on in the control panel, under Screen.' : 'Starts after ' + plural(+sv.after || 5, 'minute', 'minutes') + ' with no touches' + (sv.when === 'after' ? ', outside school hours only.' : '.');
     var now_ = which === 'mine' ? 'Playing the video chosen on this tablet: ' + SV.name + (SV.size ? ' (' + mb(SV.size) + ')' : '') + '.'
@@ -1947,7 +1953,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
       '<div class="acts"><button id="svclose">Close</button><button class="go" id="svnow">Show the screensaver</button></div>', function () {
       var input = $('#svfile');
       $('#svclose').onclick = closeSheet;
-      $('#svreload').onclick = function () { location.reload(); };
+      $('#svreload').onclick = function () { closeSheet(); reloadScreen(); };
       if ($('#svfull')) $('#svfull').onclick = function () {
         closeSheet();
         try { var r = document.documentElement.requestFullscreen({ navigationUI: 'hide' }); if (r && r.catch) r.catch(function () { toast('This browser did not allow full screen here.'); }); } catch (e) { toast('This browser did not allow full screen here.'); }
@@ -2011,6 +2017,16 @@ if (typeof module !== 'undefined') module.exports = QJ;
 
   var lastMinute = -1, lastPoll = 0, lastBeat = 0;
   // Inside the tablet app, tell the app this page is running (not stuck on Google's sign-in page).
+  // Reloading Google's page from the inside leaves it blank, so ask the tablet app to reload it, or else refresh in place.
+  var inShell = false;
+  window.addEventListener('message', function (e) { if (e.source === window.top && e.data && e.data.qj === 'shell') inShell = true; });
+  function reloadScreen() {
+    if (inShell) { try { window.top.postMessage({ qj: 'reload' }, '*'); return; } catch (e) { } }
+    if (!GAS) { location.reload(); return; }
+    toast('Refreshing');
+    call('qjState').then(function (st) { accept(st); loadSaverVideo(); CV.retry = 0; syncCloudVideo(); toast('Up to date. To load a new version of the journal, close this page and open it again.'); })
+      .catch(function (e) { toast('Could not refresh: ' + message(e)); });
+  }
   function heartbeat() {
     lastBeat = Date.now();
     try { if (window.top !== window.self) window.top.postMessage({ qj: 'alive', t: lastBeat }, '*'); } catch (e) { }
