@@ -2116,5 +2116,235 @@ if (typeof module !== 'undefined') module.exports = QJ;
     menu: showDock, saver: function (on) { if (on === false) hideSaver(); else showSaver(); }, settings: settingsSheet };
 })();
 </script>
+<!-- GRUB COMPANION — self-contained; paste before </body> or include('Grub'). -->
+<style id="qj-grub-style">
+#qj-grub-world{position:fixed;inset:0;z-index:35;pointer-events:none;overflow:hidden;contain:layout style;--grub-ink:#182b23}
+#qj-grub-world[hidden],#qj-grub-menu[hidden]{display:none!important}
+#qj-grub-anchor{position:absolute;left:0;top:0;width:0;height:0;will-change:transform}
+#qj-grub-pet{position:absolute;bottom:0;left:0;width:82px;height:96px;transform:translateX(-50%);transform-origin:50% 100%;border:0;background:none;padding:0;pointer-events:auto;touch-action:manipulation;cursor:pointer;filter:drop-shadow(0 3px 3px #0005);outline-offset:0;border-radius:45%;transition:opacity .2s}
+#qj-grub-pet:focus-visible{outline:2px solid #e5c681}
+#qj-grub-pet svg{width:100%;height:100%;overflow:visible;display:block}
+#qj-grub-pet .grub-closed{display:none}
+#qj-grub-pet[data-eyes=closed] .grub-open{display:none}
+#qj-grub-pet[data-eyes=closed] .grub-closed{display:block}
+#qj-grub-pet .grub-cheek{opacity:0;transition:opacity .3s}
+#qj-grub-pet[data-state=happy] .grub-cheek,#qj-grub-pet[data-state=play] .grub-cheek{opacity:.7}
+#qj-grub-spark{position:absolute;bottom:100%;left:28%;font:20px Georgia,serif;color:#f0b8b0;text-shadow:0 2px 5px #09150c;opacity:0;pointer-events:none;white-space:nowrap}
+#qj-grub-toggle{position:fixed;right:max(10px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));z-index:36;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;border:1px solid #9fc49c66;background:#101c20e8;color:#c6dfbb;font:19px Georgia,serif;cursor:pointer;box-shadow:0 2px 8px #0003}
+#qj-grub-toggle:focus-visible{outline:2px solid #e5c681;outline-offset:3px}
+#qj-grub-menu{position:fixed;z-index:37;right:max(12px,env(safe-area-inset-right));bottom:52px;width:230px;padding:14px;border:1px solid #92b89075;border-radius:17px;background:#101a24f7;color:#efe5cf;box-shadow:0 8px 30px #0007;font:15px/1.35 'Segoe UI',sans-serif;pointer-events:auto}
+#qj-grub-menu strong{display:block;font:600 23px Georgia,serif;margin:0 0 4px}
+#qj-grub-menu p{font-size:12px;color:#b2c0b5;margin:0 0 12px}
+#qj-grub-menu .grub-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+#qj-grub-menu button{min-height:39px;padding:8px 9px;background:#c3dfb611;color:#e7eddc;border:1px solid #a9c8964a;border-radius:9px;font:inherit;text-align:center;cursor:pointer}
+#qj-grub-menu button:hover{background:#c3dfb628}
+#qj-grub-menu button:focus-visible{outline:2px solid #e5c681;outline-offset:1px}
+#qj-grub-menu .grub-wide{grid-column:1/-1}
+#qj-grub-menu .grub-dismiss{position:absolute;right:8px;top:6px;min-height:28px;width:28px;padding:0;border:0;background:none}
+#qj-grub-live{position:fixed;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+@media(prefers-reduced-motion:reduce){#qj-grub-pet,#qj-grub-pet .grub-cheek{transition:none}}
+</style>
+<div id="qj-grub-world" hidden>
+ <div id="qj-grub-anchor">
+  <button id="qj-grub-pet" type="button" aria-label="Pet Grub. Right-click or press Shift Enter for his menu." data-state="idle">
+   <svg viewBox="0 0 120 138" aria-hidden="true" focusable="false">
+    <defs>
+     <linearGradient id="qj-grub-green" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8cd49d"/><stop offset="1" stop-color="#4b9e76"/></linearGradient>
+     <linearGradient id="qj-grub-belly" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d5eed1"/><stop offset="1" stop-color="#a5d5bf"/></linearGradient>
+     <linearGradient id="qj-grub-face" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff4d7"/><stop offset="1" stop-color="#dbd4ad"/></linearGradient>
+    </defs>
+    <g id="qj-grub-facing">
+     <ellipse id="qj-grub-shadow" cx="62" cy="130" rx="33" ry="5" fill="#050c09" opacity=".28"/>
+     <g id="qj-grub-body" stroke="#182b23" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+      <path id="qj-grub-foot-a" d="M39 113q-13 7-8 13 11 8 18-6" fill="#b9dfc9"/>
+      <path id="qj-grub-foot-b" d="M59 120q-1 14 12 10 5-2 4-8" fill="#b9dfc9"/>
+      <path id="qj-grub-tail" d="M65 108q18 4 20-11 1-9 9-7 8 2 4 12 11-8 17-1 8 13-10 21-14 7-34 2" fill="url(#qj-grub-green)"/>
+      <path d="M43 48C66 41 83 49 85 63q2 13-10 21 14 7 8 21-2 8-15 13 1 7-5 13-23-7-28-26-6-20-2-35z" fill="url(#qj-grub-green)"/>
+      <path d="M42 50q-16 9-12 22-8 15-4 30 6 24 35 24-8-13-9-24-9 0-10-6-1-5 7-9-4-11-3-20-10-1-10-7z" fill="url(#qj-grub-belly)"/>
+      <path d="M76 82q-9 8-16 6M78 105q-8 8-15 6" fill="none" stroke="#346b4c" stroke-width="2.7"/>
+      <path id="qj-grub-arm" d="M40 65q-12-8-14 0-2 10 10 16" fill="url(#qj-grub-belly)"/>
+     </g>
+     <g id="qj-grub-head" stroke="#182b23" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M35 19C43 2 69 2 86 14c19 13 21 40 5 54-5 5-11 7-17 8-4-1-7-3-10-6-10 0-22-5-26-14-7-9-11-24-3-37Z" fill="url(#qj-grub-green)"/>
+      <path d="M39 17c-16-1-25 6-25 20-1 13 6 23 17 23 9 0 16-8 17-20 1-11-2-19-9-23Z" fill="url(#qj-grub-face)"/>
+      <path d="M31 23c-8 6-11 19-2 31" fill="none" stroke-width="2.5"/>
+      <path d="M43 17c15 0 22 10 21 27-1 15-7 22-17 21-14-2-21-15-21-29 0-11 7-19 17-19Z" fill="url(#qj-grub-face)"/>
+      <ellipse class="grub-open" cx="82" cy="38" rx="8.2" ry="10.6" fill="#11251c" stroke="none"/>
+      <ellipse class="grub-open" cx="79.5" cy="34" rx="2.1" ry="2.8" fill="#e8f4db" stroke="none" opacity=".9"/>
+      <path class="grub-closed" d="M74 40q8 7 16-1" fill="none" stroke-width="3"/>
+      <ellipse class="grub-cheek" cx="86" cy="54" rx="7" ry="3.4" fill="#e9b6a0" stroke="none"/>
+      <path d="M60 15q11-4 21 3" stroke="#b5ebaf" stroke-width="3" opacity=".55" fill="none"/>
+     </g>
+    </g>
+   </svg>
+   <span id="qj-grub-spark" aria-hidden="true"></span>
+  </button>
+ </div>
+</div>
+<button id="qj-grub-toggle" type="button" aria-label="Grub companion menu" aria-haspopup="true" aria-expanded="false" aria-controls="qj-grub-menu" title="Grub companion">❧</button>
+<section id="qj-grub-menu" role="dialog" aria-label="Grub companion" hidden>
+ <button class="grub-dismiss" type="button" data-grub="close" aria-label="Close Grub menu">×</button>
+ <strong>A little company</strong><p id="qj-grub-note">Tap Grub to give him a little pat.</p>
+ <div class="grub-actions">
+  <button type="button" data-grub="roam">Explore</button><button type="button" data-grub="sleep">Take a nap</button>
+  <button type="button" data-grub="play">Play</button><button type="button" data-grub="pause">Pause</button>
+  <button class="grub-wide" type="button" data-grub="hide">Hide Grub</button>
+ </div>
+</section>
+<div id="qj-grub-live" role="status" aria-live="polite"></div>
+<script>
+(function(){
+ 'use strict';
+ if(window.QJ_GRUB)return;
+ var root=document.getElementById('qj-grub-world'),pet=document.getElementById('qj-grub-pet'),anchor=document.getElementById('qj-grub-anchor');
+ var toggle=document.getElementById('qj-grub-toggle'),menu=document.getElementById('qj-grub-menu'),note=document.getElementById('qj-grub-note');
+ if(window.QJ_FRAME){root.remove();toggle.remove();menu.remove();return;}
+ var $=function(id){return document.getElementById('qj-grub-'+id);};
+ var store={get:function(k){try{return localStorage.getItem('qj.grub.'+k);}catch(e){return null;}},set:function(k,v){try{localStorage.setItem('qj.grub.'+k,String(v));}catch(e){}}};
+ var reduced=window.matchMedia('(prefers-reduced-motion: reduce)'),svgNS='http://www.w3.org/2000/svg';
+ var route=document.createElementNS(svgNS,'path'),length=1,size=82,w=innerWidth,h=innerHeight;
+ var savedRaw=store.get('position'),saved=Number(savedRaw),position=(savedRaw!==null&&isFinite(saved)&&saved>=0&&saved<1)?saved:.08;
+ var enabled=store.get('enabled')!=='false',paused=store.get('paused')==='true';
+ var state='peek',age=0,duration=3.4,direction=1,clock=0,step=0,last=0,raf=0,blocked=false,checkAt=0;
+ var eyeUntil=0,blinkAt=3+Math.random()*3,cursor={x:-1000,y:-1000},avoidUntil=0,autonomous=0;
+ var timer=0,longPress=0,suppressClick=false,destroyed=false;
+ function announce(s){$('live').textContent=s;}
+ function save(){store.set('enabled',enabled);store.set('paused',paused);store.set('position',position);}
+ function dimensions(){
+  var fraction=position;w=innerWidth;h=innerHeight;size=Math.max(44,Math.min(64,Math.min(w,h)*.08));
+  pet.style.width=size+'px';pet.style.height=(size*138/120)+'px';
+  var l=6,r=Math.max(l+40,w-6),t=6,b=Math.max(t+40,h-6),rad=Math.max(14,Math.min(65,w*.15,h*.15));
+  route.setAttribute('d','M '+(l+rad)+' '+b+' H '+(r-rad)+' Q '+r+' '+b+' '+r+' '+(b-rad)+' V '+(t+rad)+' Q '+r+' '+t+' '+(r-rad)+' '+t+' H '+(l+rad)+' Q '+l+' '+t+' '+l+' '+(t+rad)+' V '+(b-rad)+' Q '+l+' '+b+' '+(l+rad)+' '+b+' Z');
+  length=route.getTotalLength();position=fraction;draw(0);
+ }
+ function pose(p){
+  var d=((p%1)+1)%1*length,point=route.getPointAtLength(d),next=route.getPointAtLength((d+.5)%length),prev=route.getPointAtLength((d-.5+length)%length);
+  return {x:point.x,y:point.y,angle:Math.atan2(next.y-prev.y,next.x-prev.x)*180/Math.PI};
+ }
+ function setState(s,seconds){
+  state=s;age=0;duration=seconds||5;pet.dataset.state=s;
+  note.textContent=s==='sleep'?'Shh… a very small nap. Tap him to wake him.':paused?'Taking a breather. Resume whenever you like.':'Tap Grub to give him a little pat.';
+ }
+ function nextState(){
+  autonomous++;
+  if(state==='sleep'){setState('wake',2.4);return;}
+  if(state==='wake'||state==='peek'||state==='happy'||state==='play'){setState('crawl',7+Math.random()*8);return;}
+  if(state==='crawl'){
+   if(autonomous%7===0){setState('sleep',22+Math.random()*16);return;}
+   setState(Math.random()<.35?'play':'idle',3+Math.random()*3);return;
+  }
+  if(Math.random()<.25)direction*=-1;
+  setState('crawl',8+Math.random()*12);
+ }
+ function draw(dt){
+  var p=pose(position),quiet=reduced.matches||paused,m=quiet?0:1;
+  var wave=Math.sin(step),breath=Math.sin(clock*2.0),sleep=state==='sleep',playing=state==='play',happy=state==='happy';
+  var hop=playing?Math.max(0,Math.sin(age*5.2))*11:happy?Math.max(0,Math.sin(age*7))*5:0;
+  var tuck=state==='peek'?(1-Math.min(1,age/2.4))*size*.72:0;
+  // Move along the perimeter tangent, keeping the body on the inside of the frame.
+  anchor.style.transform='translate('+p.x.toFixed(2)+'px,'+p.y.toFixed(2)+'px) rotate('+p.angle.toFixed(2)+'deg)';
+  pet.style.transform='translate(-50%,'+((tuck-hop)*m).toFixed(2)+'px)';
+  $('facing').setAttribute('transform',direction>0?'translate(120 0) scale(-1 1)':'');
+  var crawl=state==='crawl'?1:0;
+  var sy=sleep ? .91+breath*.012*m : 1+wave*.045*crawl*m+breath*.006*m;
+  var sx=sleep?1.05:1-wave*.055*crawl*m;
+  $('body').setAttribute('transform','translate(60 127) scale('+sx.toFixed(4)+' '+sy.toFixed(4)+') translate(-60 -127)');
+  var headY=sleep?13+breath*.55*m:crawl?wave*1.8*m:-breath*.7*m;
+  var angle=sleep?13:happy?-5+Math.sin(age*9)*4*m:playing?Math.sin(age*5.2)*7*m:state==='idle'?Math.sin(age*1.3)*3*m:wave*2*crawl*m;
+  $('head').setAttribute('transform','translate('+(sleep?6:0)+' '+headY.toFixed(2)+') rotate('+angle.toFixed(2)+' 62 66)');
+  $('arm').setAttribute('transform',happy||playing?'rotate('+(-18+Math.sin(age*9)*17*m).toFixed(2)+' 39 69)':'');
+  $('tail').setAttribute('transform','rotate('+((sleep?-8:0)+(crawl?wave*6:breath*2)*m).toFixed(2)+' 70 113)');
+  $('foot-a').setAttribute('transform','translate('+(wave*1.8*crawl*m).toFixed(2)+' 0)');
+  $('foot-b').setAttribute('transform','translate('+(-wave*1.8*crawl*m).toFixed(2)+' 0)');
+  pet.dataset.eyes=sleep||clock<eyeUntil?'closed':'open';
+  var spark=$('spark');spark.textContent=sleep?'z z':happy?'♥':playing?'✧':'';
+  spark.style.opacity=spark.textContent?(quiet?'.7':String(.5+.35*Math.sin(clock*2))):'0';
+  spark.style.transform='translateY('+(-3+Math.sin(clock)*3*m).toFixed(2)+'px)';
+  pet.setAttribute('aria-label',sleep?'Wake Grub. He is sleeping.':'Pet Grub. Right-click or press Shift Enter for his menu.');
+ }
+ function visibleOverlay(){
+  return ['scrim','day','night','saver'].some(function(id){var e=document.getElementById(id);return e&&!e.hidden&&getComputedStyle(e).display!=='none';});
+ }
+ function checkEnvironment(){
+  blocked=visibleOverlay();root.hidden=!enabled||blocked;toggle.hidden=blocked;if(blocked)closeMenu(false);
+  if(!blocked&&enabled&&menu.hidden){
+   var box=pet.getBoundingClientRect(),nav=document.getElementById('nav');
+   // Avoid the navigation dock and whichever control the user is interacting with.
+   var obstacles=[],soft=[];
+   if(nav&&nav.classList.contains('show'))obstacles.push(nav.getBoundingClientRect());
+   document.querySelectorAll('button,a[href],input,select,textarea,[role="button"]').forEach(function(el){
+    if(el===pet||el===toggle||menu.contains(el)||el.closest('#nav'))return;
+    var r=el.getBoundingClientRect();if(!r.width||!r.height)return;
+    // Whole cards are tappable too; he may crawl over their edges, just a little see-through.
+    if(r.width*r.height>40000)soft.push(r);else obstacles.push(r);
+   });
+   var focused=document.activeElement;
+   if(focused&&focused!==document.body&&!focused.closest('#qj-grub-menu')&&focused!==pet&&focused!==toggle&&focused.matches('button,input,select,textarea,a'))obstacles.push(focused.getBoundingClientRect());
+   var hit=function(r){return box.left<r.right+8&&box.right>r.left-8&&box.top<r.bottom+8&&box.bottom>r.top-8;};
+   var collision=obstacles.some(hit),over=soft.some(function(r){return box.left<r.right&&box.right>r.left&&box.top<r.bottom&&box.bottom>r.top;});
+   if(!collision&&over){pet.style.opacity='.8';pet.style.pointerEvents='auto';}
+   else if(collision){pet.style.opacity='.16';pet.style.pointerEvents='none';if(clock>avoidUntil&&!paused&&!reduced.matches){direction*=-1;setState('crawl',4);avoidUntil=clock+4;}}
+   else{pet.style.opacity='1';pet.style.pointerEvents='auto';}
+  }
+ }
+ function loop(ts){
+  raf=0;if(destroyed||document.hidden||!enabled)return;
+  var dt=last?Math.min((ts-last)/1000,.05):0;last=ts;
+  if(ts>checkAt){checkAt=ts+300;checkEnvironment();}
+  if(!blocked&&menu.hidden){
+   if(!paused){
+    clock+=dt;age+=dt;
+    if(clock>blinkAt){eyeUntil=clock+.14;blinkAt=clock+3+Math.random()*5;}
+    if(!reduced.matches){
+     if(state==='crawl'){
+      var speed=30*(size/82)*(1+.28*Math.sin(step));
+      position=((position+direction*speed*dt/length)%1+1)%1;step+=dt*7;
+     }
+     if(age>=duration)nextState();
+    }
+   }
+   if(!paused)draw(dt);
+  }
+  if(paused||reduced.matches||blocked){timer=setTimeout(function(){timer=0;start();},250);}else raf=requestAnimationFrame(loop);
+ }
+ function start(){if(!raf&&!timer&&!document.hidden&&enabled&&!destroyed){last=0;raf=requestAnimationFrame(loop);}}
+ function closeMenu(focus){menu.hidden=true;toggle.setAttribute('aria-expanded','false');if(focus)toggle.focus();}
+ function openMenu(){menu.hidden=false;toggle.setAttribute('aria-expanded','true');refreshButtons();menu.querySelector('[data-grub=roam]').focus();}
+ function refreshButtons(){menu.querySelector('[data-grub=hide]').textContent=enabled?'Hide Grub':'Bring Grub back';menu.querySelector('[data-grub=pause]').textContent=paused?'Resume':'Pause';}
+ function act(action){
+  if(action==='close'){closeMenu(true);return;}
+  if(action==='hide'){enabled=!enabled;root.hidden=!enabled;if(!enabled){cancelAnimationFrame(raf);clearTimeout(timer);timer=0;raf=0;}else{setState('peek',3);start();}announce(enabled?'Grub is back.':'Grub is tucked away.');}
+  else if(action==='pause'){paused=!paused;announce(paused?'Grub is paused.':'Grub is exploring again.');}
+  else{enabled=true;paused=false;root.hidden=false;
+   if(action==='sleep'){setState('sleep',35);announce('Grub curls up for a nap.');}
+   if(action==='play'){setState('play',4.5);announce('Grub does a happy little wiggle.');}
+   if(action==='roam'){setState(reduced.matches?'idle':'crawl',14);announce(reduced.matches?'Grub is awake. Reduced motion keeps him settled.':'Grub is off exploring.');}
+   start();
+  }
+  refreshButtons();save();closeMenu(true);draw(0);
+ }
+ function petGrub(){paused=false;if(state==='sleep'){setState('wake',2.4);announce('Grub wakes up and stretches.');}else{setState('happy',3);announce('Grub likes his little head pat.');}save();draw(0);}
+ toggle.addEventListener('click',function(e){e.stopPropagation();if(menu.hidden)openMenu();else closeMenu(true);});
+ menu.addEventListener('click',function(e){var b=e.target.closest('[data-grub]');if(b)act(b.dataset.grub);});
+ pet.addEventListener('click',function(e){e.stopPropagation();if(suppressClick){suppressClick=false;return;}petGrub();});
+ pet.addEventListener('contextmenu',function(e){e.preventDefault();openMenu();});
+ pet.addEventListener('keydown',function(e){if((e.shiftKey&&e.key==='Enter')||e.key==='ContextMenu'){e.preventDefault();openMenu();}});
+ pet.addEventListener('pointerdown',function(e){if(e.pointerType==='touch'){longPress=setTimeout(function(){suppressClick=true;openMenu();},650);}});
+ ['pointerup','pointercancel','pointerleave'].forEach(function(name){pet.addEventListener(name,function(){clearTimeout(longPress);});});
+ document.addEventListener('pointerdown',function(e){if(!menu.hidden&&!menu.contains(e.target)&&e.target!==toggle)closeMenu(false);});
+ document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!menu.hidden){closeMenu(true);}});
+ window.addEventListener('resize',dimensions);if(window.visualViewport)visualViewport.addEventListener('resize',dimensions);
+ document.addEventListener('visibilitychange',function(){if(document.hidden){cancelAnimationFrame(raf);clearTimeout(timer);timer=0;raf=0;save();}else start();});
+ window.addEventListener('pagehide',save);
+ function reducedChange(){if(reduced.matches)setState('idle',5);draw(0);}
+ if(reduced.addEventListener)reduced.addEventListener('change',reducedChange);else reduced.addListener(reducedChange);
+ // Observe only visibility attributes of app overlays, never the animated SVG.
+ var observer=new MutationObserver(checkEnvironment);
+ ['scrim','day','night','saver','nav'].forEach(function(id){var el=document.getElementById(id);if(el)observer.observe(el,{attributes:true,attributeFilter:['hidden','class','style']});});
+ window.QJ_GRUB={action:act,state:function(){return {state:state,enabled:enabled,paused:paused,position:position,reducedMotion:reduced.matches,blocked:blocked,edge:pose(position),size:size};}};
+ if(reduced.matches)setState('idle',5);dimensions();checkEnvironment();refreshButtons();start();
+})();
+</script>
+<!-- END GRUB COMPANION -->
 </body>
 </html>
