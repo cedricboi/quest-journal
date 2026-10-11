@@ -1,7 +1,99 @@
 <!DOCTYPE html>
 <html lang="en-SG">
 <head>
-<base target="_top"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><script>window.QJ_SAVER_URL="screensaver.mp4";if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});</script>
+<base target="_top"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><script>// Quest Journal tablet app: the first thing that runs.
+// If the journal is shared only with MOE accounts, the app cannot read it directly, so it shows your
+// journal's own page (with your MOE sign-in) inside the full-screen app instead. That is "frame mode".
+(function () {
+  window.QJ_APP = true;
+  var ls = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
+  };
+  // The screen link in either form: .../macros/s/ID/exec?k=KEY or .../a/moe.edu.sg/macros/s/ID/exec?k=KEY
+  function parseLink(v) {
+    var m = String(v || '').trim().match(/^https:\/\/script\.google\.com\/(?:a\/macros\/[^\/?#]+\/|a\/[^\/?#]+\/macros\/|macros\/)s\/([^\/?#]+)\/exec\?(?:[^#]*&)?k=([A-Za-z0-9_-]{8,})/);
+    return m ? { link: m[0], api: 'https://script.google.com/macros/s/' + m[1] + '/exec', key: m[2] } : null;
+  }
+  window.QJ_PARSE_LINK = parseLink;
+  window.QJ_SAVE_LINK = function (got) {
+    ls.set('qj.link', got.link); ls.set('qj.api', got.api); ls.set('qj.key', got.key); ls.set('qj.mode', ''); ls.set('qj.state', '');
+  };
+  var q = new URLSearchParams(location.search), got = q.get('link') ? parseLink(q.get('link')) : null;
+  if (got) { window.QJ_SAVE_LINK(got); try { history.replaceState(null, '', location.pathname); } catch (e) { } }
+  var link = ls.get('qj.link');
+  if (ls.get('qj.mode') !== 'frame' || !link) return;
+  window.QJ_FRAME = true;
+  document.documentElement.classList.add('qjframe');
+  document.addEventListener('DOMContentLoaded', function () {
+    var WAIT = +window.QJ_FRAME_WAIT || 25000, started = Date.now(), alive = 0;
+    var st = document.createElement('style');
+    st.textContent = 'html.qjframe body>*:not(.qjshell){display:none!important}' +
+      '.qjshell{position:fixed;inset:0;width:100%;height:100%;border:0;margin:0;background:#0a0e1a}' +
+      '.qjov{z-index:5;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;background:rgba(6,9,18,.95);color:#f3e6cc;font-family:"Alegreya Sans","Segoe UI",sans-serif}' +
+      '.qjov[hidden]{display:none!important}' +
+      '.qjov .box{max-width:660px;width:100%;box-sizing:border-box;background:#111a2b;border:1px solid rgba(217,178,111,.5);border-radius:20px;padding:28px 30px}' +
+      '.qjov h1{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;font-size:36px;line-height:1.1;margin:0 0 10px}' +
+      '.qjov p{font-size:19px;line-height:1.45;color:#cdbfa5;margin:0 0 10px}' +
+      '.qjov .acts{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}' +
+      '.qjov button{flex:1;min-height:56px;border-radius:13px;font:800 18px "Alegreya Sans","Segoe UI",sans-serif;border:1px solid rgba(217,178,111,.5);color:#d9b26f;background:none;cursor:pointer;padding:0 16px;text-align:center}' +
+      '.qjov button.go{background:linear-gradient(135deg,#a8243e,#5e1426);color:#fff2f2;border-color:#ec5f77}' +
+      '.qjov small{display:block;font-size:15px;color:#949bab;margin-top:14px;line-height:1.4}';
+    document.head.appendChild(st);
+    var f = document.createElement('iframe');
+    f.className = 'qjshell'; f.id = 'qjframe'; f.title = 'Quest Journal';
+    f.setAttribute('allow', 'autoplay; fullscreen; screen-wake-lock; clipboard-write; encrypted-media');
+    f.src = link;
+    document.body.appendChild(f);
+    var ov = document.createElement('div');
+    ov.className = 'qjshell qjov'; ov.id = 'qjov'; ov.hidden = true;
+    document.body.appendChild(ov);
+    function reload() { ov.hidden = true; alive = 0; started = Date.now(); f.src = 'about:blank'; setTimeout(function () { f.src = link; }, 50); }
+    function show() {
+      var off = navigator.onLine === false;
+      ov.innerHTML = '<div class="box">' + (off
+        ? '<h1>Waiting for the internet</h1><p>The tablet is offline. Your journal comes back by itself when the Wi-Fi returns.</p>'
+        : '<h1>Sign in to see your journal</h1><p>Your journal is shared only with MOE accounts, so this tablet needs to be signed in to your MOE Google account in Chrome. You only do this once.</p>' +
+          '<p>Tap <b>Sign in</b> and sign in with your MOE account. When you see your journal there, come back to this app and tap <b>Try again</b>.</p>') +
+        '<div class="acts">' + (off ? '' : '<button class="go" id="qjsign">Sign in</button>') + '<button id="qjretry">Try again</button></div>' +
+        '<div class="acts"><button id="qjrelink">Use a different screen link</button><button id="qjhide">My journal is showing</button></div>' +
+        (off ? '' : '<small>If this keeps coming back after you have signed in: in Chrome, open Settings, Site settings, Third-party cookies, and allow them (or add this app&#8217;s address as an exception).</small>') + '</div>';
+      ov.hidden = false;
+      var s = document.getElementById('qjsign');
+      if (s) s.onclick = function () { window.open(link, '_blank'); };
+      document.getElementById('qjretry').onclick = reload;
+      // An older journal page does not say "alive", so let the prompt be put away until the next reload.
+      document.getElementById('qjhide').onclick = function () { ov.hidden = true; started = Infinity; };
+      document.getElementById('qjrelink').onclick = function () {
+        ['qj.link', 'qj.api', 'qj.key', 'qj.mode', 'qj.state'].forEach(function (k) { ls.set(k, ''); });
+        location.replace(location.pathname);
+      };
+    }
+    // The journal page says "alive" every half minute. Silence means it is showing Google's sign-in page instead.
+    addEventListener('message', function (e) {
+      var h = '';
+      try { h = new URL(e.origin).hostname; } catch (x) { }
+      if (!/(^|\.)googleusercontent\.com$|^script\.google\.com$/.test(h) || !e.data || e.data.qj !== 'alive') return;
+      alive = Date.now(); ov.hidden = true;
+    });
+    setInterval(function () {
+      var now = Date.now();
+      if (!alive && now - started > WAIT && ov.hidden) show();
+      else if (alive && now - alive > 5 * 60000) reload();
+    }, 2000);
+    addEventListener('online', function () { if (!ov.hidden) reload(); });
+    // Keep the screen on while the app is open.
+    var wl = null;
+    function wake() {
+      try {
+        if (navigator.wakeLock && !wl && document.visibilityState === 'visible') navigator.wakeLock.request('screen').then(function (w) { wl = w; w.addEventListener('release', function () { wl = null; }); }).catch(function () { });
+      } catch (e) { }
+    }
+    wake(); setInterval(wake, 60000); document.addEventListener('visibilitychange', wake);
+    window.QJ_SHELL = { reload: reload, show: show, alive: function () { return alive; } };
+  });
+})();
+</script><script>window.QJ_SAVER_URL="screensaver.mp4";if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -407,6 +499,9 @@ html.no-art .saver .sart{background:radial-gradient(ellipse at 30% 30%,#1b2a3c,#
 .sheet .acts{display:flex;gap:.7rem;margin-top:1rem}
 .sheet .acts button{flex:1;min-height:3.2rem;border-radius:.8rem;font-weight:800;font-size:1.08rem;border:1px solid rgba(217,178,111,.5);color:var(--gold);text-align:center}
 .sheet .acts .go{background:linear-gradient(135deg,#a8243e,#5e1426);color:#fff2f2;border-color:var(--crimson-l)}
+.sheet .acts .filepick{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:3.2rem;border-radius:.8rem;font-weight:800;font-size:1.08rem;border:1px solid rgba(217,178,111,.5);color:var(--gold);text-align:center;cursor:pointer}
+.sheet .acts .filepick input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+.sheet .acts .filepick.busy{opacity:.55;pointer-events:none}
 .sheet input[type=text],.sheet input[type=date]{width:100%;min-height:3.1rem;padding:.6rem .9rem;border-radius:.75rem;border:1px solid rgba(205,191,165,.35);background:#0a111f;color:var(--ivory);font-size:1.1rem;margin:.3rem 0 .6rem}
 .sheet input:focus{outline:none;border-color:var(--gold)}
 .chips{display:flex;flex-wrap:wrap;gap:.4rem;margin:.2rem 0 .6rem}
@@ -820,6 +915,8 @@ if (typeof module !== 'undefined') module.exports = QJ;
 <script>
 (function () {
   'use strict';
+  // In the tablet app's frame mode, the journal's own Google page runs inside the app instead of this one.
+  if (window.QJ_FRAME) return;
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
   function esc(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -859,6 +956,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
     if (!API) return Promise.reject(new Error('This screen has no journal address yet. Open the screen link from your control panel.'));
     var done = function (r) { return r.json().then(function (j) { if (!j.ok) throw new Error(j.error || 'The journal did not answer.'); return j; }); };
     if (fn === 'qjState') return fetch(API + (API.indexOf('?') >= 0 ? '&' : '?') + 'api=state&k=' + encodeURIComponent(KEY), { cache: 'no-store' }).then(done);
+    if (fn === 'qjSaverPart') return fetch(API + (API.indexOf('?') >= 0 ? '&' : '?') + 'api=saverpart&k=' + encodeURIComponent(KEY) + '&v=' + encodeURIComponent(args[0]) + '&i=' + encodeURIComponent(args[1]), { cache: 'no-store' }).then(done).then(function (j) { return j.data; });
     var body = { k: KEY };
     if (fn === 'qjTick') { body.action = 'tick'; body.id = args[0]; body.done = args[1]; }
     else if (fn === 'qjCount') { body.action = 'count'; body.id = args[0]; body.count = args[1]; }
@@ -885,6 +983,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
       S.lastOk = +store.get('qj.at') || 0;
     }
     render();
+    syncCloudVideo();
   }
   function poll() {
     if (S.busy) return;
@@ -892,6 +991,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
     call('qjState').then(function (st) { S.locked = false; accept(st); }).catch(function (e) {
       S.err = message(e);
       if (/locked|no access/i.test(S.err)) { S.locked = true; store.set('qj.state', ''); render(); }
+      else if (!GAS && !S.st && e instanceof TypeError && navigator.onLine !== false) { maybeFrame(); if (!$('#lk')) render(); }
       else if (!S.st && !$('#lk')) render();
       else renderStatus();
     }).then(function () { S.busy = false; });
@@ -1006,6 +1106,26 @@ if (typeof module !== 'undefined') module.exports = QJ;
     ['todos', 'week', 'month'].forEach(function (v) { $('#' + v).hidden = true; });
     $('#home').hidden = false;
   }
+  // The screen link in either form: .../macros/s/ID/exec?k=KEY or .../a/moe.edu.sg/macros/s/ID/exec?k=KEY
+  function parseLink(v) {
+    if (window.QJ_PARSE_LINK) return window.QJ_PARSE_LINK(v);
+    var m = String(v || '').trim().match(/^https:\/\/script\.google\.com\/(?:a\/macros\/[^\/?#]+\/|a\/[^\/?#]+\/macros\/|macros\/)s\/([^\/?#]+)\/exec\?(?:[^#]*&)?k=([A-Za-z0-9_-]{8,})/);
+    return m ? { link: m[0], api: 'https://script.google.com/macros/s/' + m[1] + '/exec', key: m[2] } : null;
+  }
+  // If the journal cannot be read directly while the tablet is online, it is shared only with MOE accounts.
+  // The tablet app then switches to showing the journal's own page, with the MOE sign-in.
+  var framing = false;
+  function maybeFrame() {
+    if (framing || !window.QJ_APP || !window.fetch) return;
+    var link = store.get('qj.link') || (API && KEY ? API + '?k=' + KEY : '');
+    if (!link) return;
+    framing = true;
+    fetch('manifest.webmanifest', { cache: 'no-store' }).then(function (r) {
+      if (!r.ok) { framing = false; return; }
+      store.set('qj.link', link); store.set('qj.mode', 'frame');
+      location.reload();
+    }).catch(function () { framing = false; });
+  }
   // In the tablet app (not on Google's page), the screen link is pasted in once and kept on the tablet.
   function linkForm(title, text) {
     return '<div class="panel msg linkbox"><div class="tempty"><b>' + esc(title) + '</b>' + esc(text) + '</div>' +
@@ -1014,9 +1134,9 @@ if (typeof module !== 'undefined') module.exports = QJ;
   }
   function wireLinkForm() {
     var go = function () {
-      var v = $('#lk').value.trim(), m = v.match(/^(https:\/\/script\.google\.com\/(?:a\/macros\/[^\/?#]+|macros)\/s\/[^\/?#]+\/exec)\?(?:[^#]*&)?k=([A-Za-z0-9_-]{8,})/);
-      if (!m) { $('#lkerr').textContent = 'That is not the screen link. Copy it again from the control panel, Screen tab.'; return; }
-      store.set('qj.api', m[1].replace(/\/a\/macros\/[^\/]+\/s\//, '/macros/s/')); store.set('qj.key', m[2]); store.set('qj.state', '');
+      var got = parseLink($('#lk').value);
+      if (!got) { $('#lkerr').textContent = 'That is not the screen link. It starts with https://script.google.com and has ?k= and a long key at the end. Copy it again from the control panel, Screen tab.'; return; }
+      store.set('qj.link', got.link); store.set('qj.api', got.api); store.set('qj.key', got.key); store.set('qj.mode', ''); store.set('qj.state', '');
       location.replace(location.pathname);
     };
     $('#lkgo').onclick = go;
@@ -1036,7 +1156,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
     } else {
       $('#home').innerHTML = '<div class="panel tasks msg"><div class="tempty"><b>Connecting to your journal</b>' + esc(S.err || 'Reading your tasks, timetable and calendar.') + '</div>' +
         (!GAS && !window.QJ_MOCK ? '<button class="link relink" id="relink">Use a different screen link</button>' : '') + '</div>';
-      if ($('#relink')) $('#relink').onclick = function () { store.set('qj.key', ''); store.set('qj.api', ''); location.replace(location.pathname); };
+      if ($('#relink')) $('#relink').onclick = function () { ['qj.key', 'qj.api', 'qj.link', 'qj.mode', 'qj.state'].forEach(function (k) { store.set(k, ''); }); location.replace(location.pathname); };
     }
     renderStatus();
   }
@@ -1694,7 +1814,41 @@ if (typeof module !== 'undefined') module.exports = QJ;
       };
     });
   }
-  var SV = { shown: false, blob: '', name: '', size: 0, swallow: 0, folder: null };
+  var SV = { shown: false, blob: '', name: '', size: 0, at: 0, swallow: 0, folder: null };
+  // The video uploaded in the control panel: downloaded once, in parts, and kept on the tablet.
+  var CV = { v: 0, blob: '', name: '', size: 0, busy: false, pct: 0, err: '', retry: 0 };
+  function b64bytes(b64) { var bin = atob(b64), n = bin.length, u = new Uint8Array(n); for (var i = 0; i < n; i++) u[i] = bin.charCodeAt(i); return u; }
+  function setCloud(rec) {
+    var old = CV.blob;
+    CV.blob = rec ? URL.createObjectURL(rec.blob) : ''; CV.v = rec ? rec.v : 0; CV.name = rec ? rec.name : ''; CV.size = rec ? rec.size : 0;
+    var vid = $('#saver video');
+    if (vid && (!old || vid.getAttribute('src') === old || vid.getAttribute('src') !== saverSrc())) { vid.remove(); if (SV.shown) { SV.shown = false; showSaver(); } }
+    if (old) setTimeout(function () { URL.revokeObjectURL(old); }, 5000);
+  }
+  function syncCloudVideo() {
+    if (!S.st || CV.busy) return;
+    var meta = S.st.saverVideo;
+    if (!meta) {
+      if (CV.v) { idb('readwrite', function (st) { return st.delete('cloud'); }).catch(function () { }); setCloud(null); }
+      return;
+    }
+    if (CV.v === meta.v || Date.now() < CV.retry) return;
+    CV.busy = true; CV.err = ''; CV.pct = 0;
+    idb('readonly', function (st) { return st.get('cloud'); }).catch(function () { return null; }).then(function (rec) {
+      if (rec && rec.v === meta.v && rec.blob) return rec;
+      var chunks = [], i = 0;
+      function next() {
+        if (i >= meta.parts) {
+          var made = { blob: new Blob(chunks, { type: meta.type || 'video/mp4' }), v: meta.v, name: meta.name, size: meta.size };
+          return idb('readwrite', function (st) { return st.put(made, 'cloud'); })
+            .then(function () { try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { } return made; }, function () { return made; });
+        }
+        return call('qjSaverPart', meta.v, i).then(function (b64) { chunks.push(b64bytes(b64)); i++; CV.pct = i / meta.parts; return next(); });
+      }
+      return next();
+    }).then(function (rec) { CV.busy = false; setCloud(rec); })
+      .catch(function (e) { CV.busy = false; CV.err = message(e); CV.retry = Date.now() + 5 * 60000; });
+  }
   // A screensaver.mp4 uploaded beside the tablet app plays without being chosen. Check once that it is there.
   function checkFolderVideo() {
     if (!window.QJ_SAVER_URL || location.protocol === 'file:' || !window.fetch) { SV.folder = !!window.QJ_SAVER_URL; return; }
@@ -1703,12 +1857,21 @@ if (typeof module !== 'undefined') module.exports = QJ;
   function loadSaverVideo() {
     return idb('readonly', function (st) { return st.get('video'); }).then(function (rec) {
       if (SV.blob) URL.revokeObjectURL(SV.blob);
-      SV.blob = ''; SV.name = ''; SV.size = 0;
-      if (rec && rec.blob) { SV.blob = URL.createObjectURL(rec.blob); SV.name = rec.name || 'Your video'; SV.size = rec.size || rec.blob.size || 0; }
+      SV.blob = ''; SV.name = ''; SV.size = 0; SV.at = 0;
+      if (rec && rec.blob) { SV.blob = URL.createObjectURL(rec.blob); SV.name = rec.name || 'Your video'; SV.size = rec.size || rec.blob.size || 0; SV.at = rec.at || 0; }
     }).catch(function () { });
   }
   function saverCfg() { return (S.st && S.st.config.display.saver) || { on: true, after: 5, when: 'idle', url: '' }; }
-  function saverSrc() { return SV.blob || saverCfg().url || (SV.folder ? window.QJ_SAVER_URL : '') || ''; }
+  // The newer of a video chosen on the tablet and one uploaded in the control panel, then a link, then a file beside the app.
+  function saverSrc() {
+    var a = SV.blob ? { s: SV.blob, t: SV.at || 0 } : null, b = CV.blob ? { s: CV.blob, t: CV.v || 0 } : null;
+    var pick = a && b ? (a.t >= b.t ? a : b) : (a || b);
+    return (pick && pick.s) || saverCfg().url || (SV.folder ? window.QJ_SAVER_URL : '') || '';
+  }
+  function saverWhich() {
+    var src = saverSrc();
+    return !src ? 'art' : src === SV.blob ? 'mine' : src === CV.blob ? 'cloud' : src === saverCfg().url ? 'url' : 'folder';
+  }
   function inSchoolHours(cfg, t) {
     var k = QJ.key(new Date(t)), info = QJ.dayInfo(cfg, k), sc = cfg.school || {};
     if (!info.school || info.holiday) return false;
@@ -1768,15 +1931,18 @@ if (typeof module !== 'undefined') module.exports = QJ;
   }
   function mb(n) { return n ? (n / 1048576).toFixed(n < 10485760 ? 1 : 0) + ' MB' : ''; }
   function settingsSheet() {
-    var sv = saverCfg(), src = SV.blob ? 'mine' : sv.url ? 'url' : SV.folder && window.QJ_SAVER_URL ? 'folder' : 'art';
+    var sv = saverCfg(), which = saverWhich();
     var when = sv.on === false ? 'Off. Turn it on in the control panel, under Screen.' : 'Starts after ' + plural(+sv.after || 5, 'minute', 'minutes') + ' with no touches' + (sv.when === 'after' ? ', outside school hours only.' : '.');
-    var now_ = src === 'mine' ? 'Playing your video: ' + SV.name + (SV.size ? ' (' + mb(SV.size) + ')' : '') + '. It is kept on this tablet.'
-      : src === 'url' ? 'Playing the video link from the control panel.' : src === 'folder' ? 'Playing screensaver.mp4 from the app\u2019s folder.' : 'No video chosen yet, so it shows the cavern art.';
+    var now_ = which === 'mine' ? 'Playing the video chosen on this tablet: ' + SV.name + (SV.size ? ' (' + mb(SV.size) + ')' : '') + '.'
+      : which === 'cloud' ? 'Playing your video from the control panel: ' + CV.name + (CV.size ? ' (' + mb(CV.size) + ')' : '') + '. A copy is kept on this tablet.'
+      : which === 'url' ? 'Playing the video link from the control panel.' : which === 'folder' ? 'Playing screensaver.mp4 from the app’s folder.' : 'No video yet, so it shows the cavern art.';
+    if (CV.busy) now_ += ' Downloading your video from the control panel: ' + Math.round(CV.pct * 100) + '%.';
+    else if (CV.err && S.st && S.st.saverVideo) now_ += ' Your video from the control panel did not download (' + CV.err + '). It tries again in a few minutes.';
     var canFull = !!(document.fullscreenEnabled && !document.fullscreenElement && !(window.matchMedia && matchMedia('(display-mode: fullscreen)').matches));
-    sheet('<h3>This tablet</h3><p class="slabel">Screensaver</p><p>' + esc(when) + '</p><p>' + esc(now_) + '</p>' +
-      '<input type="file" id="svfile" accept="video/mp4,video/webm,video/*" hidden>' +
-      '<div class="acts"><button id="svpick">Choose a video on this tablet</button>' + (src === 'mine' ? '<button id="svdel">Remove it</button>' : '') + '</div>' +
-      '<p class="sfine">An MP4 under 50 MB works best. It plays without sound, on a loop.</p>' +
+    sheet('<h3>This tablet</h3><p class="slabel">Screensaver</p><p>' + esc(when) + '</p><p id="svnowtext">' + esc(now_) + '</p>' +
+      '<p class="sfine">To change the video, the easiest way is to upload it from the control panel on your laptop (Screen tab, Upload a video). The tablet then downloads it by itself. Or choose a video that is on this tablet:</p>' +
+      '<div class="acts"><label class="filepick" id="svpick"><input type="file" id="svfile" aria-label="Choose a video on this tablet"><span>Choose a video on this tablet</span></label>' +
+      (SV.blob ? '<button id="svdel">Remove it</button>' : '') + '</div>' +
       '<div class="acts">' + (canFull ? '<button id="svfull">Full screen</button>' : '') + '<button id="svreload">Reload screen</button></div>' +
       '<div class="acts"><button id="svclose">Close</button><button class="go" id="svnow">Show the screensaver</button></div>', function () {
       var input = $('#svfile');
@@ -1787,12 +1953,15 @@ if (typeof module !== 'undefined') module.exports = QJ;
         try { var r = document.documentElement.requestFullscreen({ navigationUI: 'hide' }); if (r && r.catch) r.catch(function () { toast('This browser did not allow full screen here.'); }); } catch (e) { toast('This browser did not allow full screen here.'); }
       };
       $('#svnow').onclick = function () { closeSheet(); showSaver(); };
-      $('#svpick').onclick = function () { input.click(); };
+      // The file box itself covers the button, so the tap lands on it directly. Any file can be picked,
+      // so the tablet shows its Files app (Downloads and so on) rather than only the photo gallery.
       input.onchange = function () {
         var f = input.files && input.files[0];
         if (!f) return;
-        if (f.size > 200 * 1048576) { toast('That video is ' + mb(f.size) + '. Please choose one under 200 MB.'); return; }
-        $('#svpick').disabled = true; $('#svpick').textContent = 'Saving';
+        if (!/^video\//.test(f.type || '') && !/\.(mp4|m4v|webm|mov|mkv|3gp)$/i.test(f.name || '')) { toast('That file is not a video. Choose an MP4 file.'); input.value = ''; return; }
+        if (f.size > 200 * 1048576) { toast('That video is ' + mb(f.size) + '. Please choose one under 200 MB.'); input.value = ''; return; }
+        $('#svpick span').textContent = 'Saving';
+        $('#svpick').classList.add('busy');
         idb('readwrite', function (st) { return st.put({ blob: f, name: f.name, size: f.size, at: Date.now() }, 'video'); })
           .then(function () { try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { } return loadSaverVideo(); })
           .then(function () { var v = $('#saver video'); if (v) v.remove(); closeSheet(); toast('Screensaver video saved on this tablet'); })
@@ -1800,7 +1969,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
       };
       if ($('#svdel')) $('#svdel').onclick = function () {
         idb('readwrite', function (st) { return st.delete('video'); }).then(loadSaverVideo)
-          .then(function () { var v = $('#saver video'); if (v) v.remove(); closeSheet(); toast('Video removed. The screensaver shows the cavern art.'); })
+          .then(function () { var v = $('#saver video'); if (v) v.remove(); closeSheet(); toast(CV.blob ? 'Removed. The screensaver plays your video from the control panel.' : 'Video removed. The screensaver shows the cavern art.'); })
           .catch(function (e) { toast('Not removed: ' + message(e)); });
       };
     });
@@ -1840,11 +2009,17 @@ if (typeof module !== 'undefined') module.exports = QJ;
     b.onclick = function () { S.view = b.getAttribute('data-view'); S.idle = now(); if (S.view === 'week') { S.weekOff = 0; S.usualIdx = null; } if (S.view === 'month') { S.month = null; S.sel = null; } if (S.view === 'home') dockUntil = Date.now() + 4000; render(); };
   });
 
-  var lastMinute = -1, lastPoll = 0;
+  var lastMinute = -1, lastPoll = 0, lastBeat = 0;
+  // Inside the tablet app, tell the app this page is running (not stuck on Google's sign-in page).
+  function heartbeat() {
+    lastBeat = Date.now();
+    try { if (window.top !== window.self) window.top.postMessage({ qj: 'alive', t: lastBeat }, '*'); } catch (e) { }
+  }
   setInterval(function () {
     var t = now(), m = Math.floor(t / 60000);
     $('#clock').textContent = C(t);
     if (dockUntil && Date.now() >= dockUntil) { dockUntil = 0; syncDock(); }
+    if (Date.now() - lastBeat > 30000) heartbeat();
     if (SV.shown && !$('#night').hidden) hideSaver();
     if (saverDue(t)) showSaver();
     if (m !== lastMinute) {
@@ -1870,6 +2045,7 @@ if (typeof module !== 'undefined') module.exports = QJ;
     render();
     poll(); lastPoll = now();
   }
+  heartbeat();
   loadSaverVideo();
   checkFolderVideo();
   keepAwake();
