@@ -2121,14 +2121,14 @@ if (typeof module !== 'undefined') module.exports = QJ;
 #qj-grub-world{position:fixed;inset:0;z-index:35;pointer-events:none;overflow:hidden;contain:layout style;--grub-ink:#182b23}
 #qj-grub-world[hidden],#qj-grub-menu[hidden]{display:none!important}
 #qj-grub-anchor{position:absolute;left:0;top:0;width:0;height:0;will-change:transform}
-#qj-grub-pet{position:absolute;bottom:0;left:0;width:82px;height:96px;transform:translateX(-50%);transform-origin:50% 100%;border:0;background:none;padding:0;pointer-events:auto;touch-action:manipulation;cursor:pointer;filter:drop-shadow(0 3px 3px #0005);outline-offset:0;border-radius:45%;transition:opacity .2s}
+#qj-grub-pet{position:absolute;bottom:0;left:0;width:82px;height:96px;transform:translateX(-50%);transform-origin:50% 100%;border:0;background:none;padding:0;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:grab;filter:drop-shadow(0 3px 3px #0005);outline-offset:0;border-radius:45%;transition:opacity .2s}
 #qj-grub-pet:focus-visible{outline:2px solid #e5c681}
 #qj-grub-pet svg{width:100%;height:100%;overflow:visible;display:block}
 #qj-grub-pet .grub-closed{display:none}
 #qj-grub-pet[data-eyes=closed] .grub-open{display:none}
 #qj-grub-pet[data-eyes=closed] .grub-closed{display:block}
 #qj-grub-pet .grub-cheek{opacity:0;transition:opacity .3s}
-#qj-grub-pet[data-state=happy] .grub-cheek,#qj-grub-pet[data-state=play] .grub-cheek{opacity:.7}
+#qj-grub-pet[data-state=happy] .grub-cheek,#qj-grub-pet[data-state=play] .grub-cheek,#qj-grub-pet[data-state=held] .grub-cheek{opacity:.7}
 #qj-grub-spark{position:absolute;bottom:100%;left:28%;font:20px Georgia,serif;color:#f0b8b0;text-shadow:0 2px 5px #09150c;opacity:0;pointer-events:none;white-space:nowrap}
 #qj-grub-toggle{position:fixed;right:max(10px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));z-index:36;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;border:1px solid #9fc49c66;background:#101c20e8;color:#c6dfbb;font:19px Georgia,serif;cursor:pointer;box-shadow:0 2px 8px #0003}
 #qj-grub-toggle:focus-visible{outline:2px solid #e5c681;outline-offset:3px}
@@ -2184,11 +2184,11 @@ if (typeof module !== 'undefined') module.exports = QJ;
 <button id="qj-grub-toggle" type="button" aria-label="Grub companion menu" aria-haspopup="true" aria-expanded="false" aria-controls="qj-grub-menu" title="Grub companion">❧</button>
 <section id="qj-grub-menu" role="dialog" aria-label="Grub companion" hidden>
  <button class="grub-dismiss" type="button" data-grub="close" aria-label="Close Grub menu">×</button>
- <strong>A little company</strong><p id="qj-grub-note">Tap Grub to give him a little pat.</p>
+ <strong>A little company</strong><p id="qj-grub-note">Tap Grub for a pat, or hold and drag him onto a box.</p>
  <div class="grub-actions">
   <button type="button" data-grub="roam">Explore</button><button type="button" data-grub="sleep">Take a nap</button>
-  <button type="button" data-grub="play">Play</button><button type="button" data-grub="pause">Pause</button>
-  <button class="grub-wide" type="button" data-grub="hide">Hide Grub</button>
+  <button type="button" data-grub="play">Play</button><button type="button" data-grub="hop">Hop</button>
+  <button type="button" data-grub="pause">Pause</button><button type="button" data-grub="hide">Hide Grub</button>
  </div>
 </section>
 <div id="qj-grub-live" role="status" aria-live="polite"></div>
@@ -2201,89 +2201,196 @@ if (typeof module !== 'undefined') module.exports = QJ;
  if(window.QJ_FRAME){root.remove();toggle.remove();menu.remove();return;}
  var $=function(id){return document.getElementById('qj-grub-'+id);};
  var store={get:function(k){try{return localStorage.getItem('qj.grub.'+k);}catch(e){return null;}},set:function(k,v){try{localStorage.setItem('qj.grub.'+k,String(v));}catch(e){}}};
- var reduced=window.matchMedia('(prefers-reduced-motion: reduce)'),svgNS='http://www.w3.org/2000/svg';
- var route=document.createElementNS(svgNS,'path'),length=1,size=82,w=innerWidth,h=innerHeight;
+ var reduced=window.matchMedia('(prefers-reduced-motion: reduce)'),svgNS='http://www.w3.org/2000/svg',RAD=Math.PI/180,G=2400;
+ var size=64,w=innerWidth,h=innerHeight;
+ // Surfaces he can walk on: the inside of the screen edge, and the outside of every big box.
+ var screen={id:'screen',path:document.createElementNS(svgNS,'path'),length:1};
+ var boxes=[],cur=screen;
  var savedRaw=store.get('position'),saved=Number(savedRaw),position=(savedRaw!==null&&isFinite(saved)&&saved>=0&&saved<1)?saved:.08;
  var enabled=store.get('enabled')!=='false',paused=store.get('paused')==='true';
  var state='peek',age=0,duration=3.4,direction=1,clock=0,step=0,last=0,raf=0,blocked=false,checkAt=0;
- var eyeUntil=0,blinkAt=3+Math.random()*3,cursor={x:-1000,y:-1000},avoidUntil=0,autonomous=0;
- var timer=0,longPress=0,suppressClick=false,destroyed=false;
+ var eyeUntil=0,blinkAt=3+Math.random()*3,avoidUntil=0,autonomous=0;
+ var timer=0,suppressUntil=0,destroyed=false;
+ // mode: walk (on a surface), fly (hopping or falling), place (being set down), held (in your hand)
+ var mode='walk',fly=null,place=null,grab=null,body={x:0,y:0,a:0};
  function announce(s){$('live').textContent=s;}
- function save(){store.set('enabled',enabled);store.set('paused',paused);store.set('position',position);}
+ function save(){store.set('enabled',enabled);store.set('paused',paused);if(cur===screen&&mode==='walk')store.set('position',position);}
+ function half(){return size*.55;}
+ function rr(p,L,T,R,B,rad){
+  p.setAttribute('d','M '+(L+rad)+' '+T+' H '+(R-rad)+' Q '+R+' '+T+' '+R+' '+(T+rad)+' V '+(B-rad)+' Q '+R+' '+B+' '+(R-rad)+' '+B+' H '+(L+rad)+' Q '+L+' '+B+' '+L+' '+(B-rad)+' V '+(T+rad)+' Q '+L+' '+T+' '+(L+rad)+' '+T+' Z');
+ }
  function dimensions(){
-  var fraction=position;w=innerWidth;h=innerHeight;size=Math.max(44,Math.min(64,Math.min(w,h)*.08));
+  w=innerWidth;h=innerHeight;size=Math.max(44,Math.min(64,Math.min(w,h)*.08));
   pet.style.width=size+'px';pet.style.height=(size*138/120)+'px';
   var l=6,r=Math.max(l+40,w-6),t=6,b=Math.max(t+40,h-6),rad=Math.max(14,Math.min(65,w*.15,h*.15));
-  route.setAttribute('d','M '+(l+rad)+' '+b+' H '+(r-rad)+' Q '+r+' '+b+' '+r+' '+(b-rad)+' V '+(t+rad)+' Q '+r+' '+t+' '+(r-rad)+' '+t+' H '+(l+rad)+' Q '+l+' '+t+' '+l+' '+(t+rad)+' V '+(b-rad)+' Q '+l+' '+b+' '+(l+rad)+' '+b+' Z');
-  length=route.getTotalLength();position=fraction;draw(0);
+  // The screen route runs along the bottom first, left to right, so the body stays inside.
+  screen.path.setAttribute('d','M '+(l+rad)+' '+b+' H '+(r-rad)+' Q '+r+' '+b+' '+r+' '+(b-rad)+' V '+(t+rad)+' Q '+r+' '+t+' '+(r-rad)+' '+t+' H '+(l+rad)+' Q '+l+' '+t+' '+l+' '+(t+rad)+' V '+(b-rad)+' Q '+l+' '+b+' '+(l+rad)+' '+b+' Z');
+  screen.length=screen.path.getTotalLength();screen.l=l;screen.r=r;screen.t=t;screen.b=b;screen.rad=rad;
+  refreshBoxes();draw(0);
  }
- function pose(p){
-  var d=((p%1)+1)%1*length,point=route.getPointAtLength(d),next=route.getPointAtLength((d+.5)%length),prev=route.getPointAtLength((d-.5+length)%length);
-  return {x:point.x,y:point.y,angle:Math.atan2(next.y-prev.y,next.x-prev.x)*180/Math.PI};
+ function refreshBoxes(){
+  var list=document.querySelectorAll('.card'),next=[];
+  for(var i=0;i<list.length;i++){
+   var el=list[i];if(el.parentElement&&el.parentElement.closest('.card'))continue;
+   if(!el.offsetParent&&getComputedStyle(el).position!=='fixed')continue;
+   var r=el.getBoundingClientRect();if(r.width<160||r.height<80||r.bottom<0||r.top>h||r.right<0||r.left>w)continue;
+   var key=[r.left,r.top,r.width,r.height].map(Math.round).join(','),b=null;
+   for(var j=0;j<boxes.length;j++)if(boxes[j].el===el)b=boxes[j];
+   if(!b)b={el:el,path:document.createElementNS(svgNS,'path')};
+   if(b.key!==key){b.key=key;b.l=r.left;b.t=r.top;b.r=r.right;b.b=r.bottom;b.rad=Math.max(4,Math.min(18,r.width/4,r.height/4));rr(b.path,b.l,b.t,b.r,b.b,b.rad);b.length=b.path.getTotalLength();}
+   next.push(b);
+  }
+  boxes=next;
+  if(cur!==screen&&boxes.indexOf(cur)<0){var keep=cur;cur=screen;if(mode==='walk'){cur=keep;startDrop();}}
  }
+ function poseOn(s,p){
+  var L=s.length,d=((p%1)+1)%1*L,point=s.path.getPointAtLength(d),next=s.path.getPointAtLength((d+.5)%L),prev=s.path.getPointAtLength((d-.5+L)%L);
+  return {x:point.x,y:point.y,angle:Math.atan2(next.y-prev.y,next.x-prev.x)/RAD};
+ }
+ function pose(){
+  if(mode==='walk')return poseOn(cur,position);
+  // In the air the body centre moves; the feet hang half a body below it.
+  var hh=half();return {x:body.x-Math.sin(body.a*RAD)*hh,y:body.y+Math.cos(body.a*RAD)*hh,angle:body.a};
+ }
+ function liftOff(){
+  var p=poseOn(cur,position),hh=half();
+  body.x=p.x+Math.sin(p.angle*RAD)*hh;body.y=p.y-Math.cos(p.angle*RAD)*hh;body.a=p.angle>180?p.angle-360:p.angle;
+ }
+ // The flat tops he can land on: each box top, and the bottom of the screen.
+ function tops(){
+  var out=[{s:screen,y:screen.b,x0:screen.l+screen.rad,x1:screen.r-screen.rad}];
+  boxes.forEach(function(b){out.push({s:b,y:b.t,x0:b.l+b.rad,x1:b.r-b.rad});});
+  return out;
+ }
+ function land(top,x){
+  x=Math.max(top.x0,Math.min(top.x1,x));cur=top.s;position=(x-top.x0)/top.s.length;mode='walk';fly=null;
+  setState('idle',.7+Math.random()*.8);
+ }
+ function startFly(vx,vy){
+  if(mode==='walk')liftOff();
+  mode='fly';fly={vx:vx,vy:vy};if(Math.abs(vx)>20)direction=vx>0?1:-1;setState('fly',99);
+ }
+ function startDrop(){
+  var p=mode==='walk'?poseOn(cur,position):{angle:0};
+  // Push gently away from the surface he was clinging to.
+  startFly(Math.sin(p.angle*RAD)*90,-Math.cos(p.angle*RAD)*90);
+ }
+ function hopTo(top,x){
+  if(mode==='walk')liftOff();
+  var hh=half(),tx=x,ty=top.y-hh,dx=tx-body.x,dy=ty-body.y,T=Math.max(.45,Math.min(1.1,.45+Math.sqrt(dx*dx+dy*dy)/1400));
+  startFly(dx/T,dy/T-G*T/2);
+ }
+ function hopSomewhere(){
+  var here=cur,options=tops().filter(function(t){return t.s!==here&&t.x1-t.x0>size;});
+  if(!options.length)return false;
+  var t=options[Math.floor(Math.random()*options.length)],m=size*.6;
+  hopTo(t,t.x0+m+Math.random()*Math.max(0,t.x1-t.x0-2*m));return true;
+ }
+ function stepFly(dt){
+  var hh=half(),prevFeet=body.y+hh;
+  fly.vy+=G*dt;body.x+=fly.vx*dt;body.y+=fly.vy*dt;
+  body.a+=(0-body.a)*Math.min(1,dt*9);
+  if(body.x<screen.l+size*.5){body.x=screen.l+size*.5;fly.vx=Math.abs(fly.vx)*.3;}
+  if(body.x>screen.r-size*.5){body.x=screen.r-size*.5;fly.vx=-Math.abs(fly.vx)*.3;}
+  var feet=body.y+hh;
+  if(fly.vy>0){
+   var best=null;
+   tops().forEach(function(t){if(body.x>=t.x0-4&&body.x<=t.x1+4&&prevFeet<=t.y+1&&feet>=t.y&&(!best||t.y<best.y))best=t;});
+   if(!best&&feet>=screen.b)best=tops()[0];
+   if(best){land(best,body.x);if(!quiet())setState('happy',.9);}
+  }
+ }
+ function stepPlace(dt){
+  place.t+=dt;var k=Math.min(1,place.t/place.T),e=1-Math.pow(1-k,3);
+  var p=poseOn(place.s,place.p),hh=half(),tx=p.x+Math.sin(p.angle*RAD)*hh,ty=p.y-Math.cos(p.angle*RAD)*hh;
+  var da=((p.angle-place.a0+540)%360)-180;
+  body.x=place.x0+(tx-place.x0)*e;body.y=place.y0+(ty-place.y0)*e-Math.sin(k*Math.PI)*18;body.a=place.a0+da*e;
+  if(k>=1){cur=place.s;position=place.p;mode='walk';place=null;setState('happy',1.6);}
+ }
+ function nearestOn(s,x,y){
+  var best=0,bd=1e12,n=Math.max(40,Math.round(s.length/6));
+  for(var i=0;i<n;i++){var pt=s.path.getPointAtLength(i/n*s.length),d=(pt.x-x)*(pt.x-x)+(pt.y-y)*(pt.y-y);if(d<bd){bd=d;best=i/n;}}
+  return best;
+ }
+ function quiet(){return reduced.matches||paused;}
  function setState(s,seconds){
   state=s;age=0;duration=seconds||5;pet.dataset.state=s;
-  note.textContent=s==='sleep'?'Shh… a very small nap. Tap him to wake him.':paused?'Taking a breather. Resume whenever you like.':'Tap Grub to give him a little pat.';
+  note.textContent=s==='sleep'?'Shh… a very small nap. Tap him to wake him.':paused?'Taking a breather. Resume whenever you like.':'Tap Grub for a pat, or hold and drag him onto a box.';
  }
+ function upright(){return mode==='walk'&&Math.abs(poseOn(cur,position).angle)<20;}
  function nextState(){
   autonomous++;
   if(state==='sleep'){setState('wake',2.4);return;}
-  if(state==='wake'||state==='peek'||state==='happy'||state==='play'){setState('crawl',7+Math.random()*8);return;}
   if(state==='crawl'){
-   if(autonomous%7===0){setState('sleep',22+Math.random()*16);return;}
-   setState(Math.random()<.35?'play':'idle',3+Math.random()*3);return;
+   // Off he goes: hop to another box from a flat top, or let go from a side or ceiling.
+   if(upright()&&Math.random()<.4&&hopSomewhere())return;
+   if(!upright()&&Math.random()<.55){startDrop();return;}
+  }
+  if(state==='wake'||state==='peek'||state==='happy'||state==='play'){setState('crawl',6+Math.random()*7);return;}
+  if(state==='crawl'){
+   if(autonomous%7===0&&upright()){setState('sleep',22+Math.random()*16);return;}
+   setState(Math.random()<.35?'play':'idle',2+Math.random()*3);return;
   }
   if(Math.random()<.25)direction*=-1;
-  setState('crawl',8+Math.random()*12);
+  setState('crawl',6+Math.random()*10);
+ }
+ function roomAhead(){
+  // Is there space on the screen for his body round the next bend of this box?
+  if(cur===screen)return true;
+  var a=poseOn(cur,position+direction*12/cur.length),hh=half(),x=a.x+Math.sin(a.angle*RAD)*hh,y=a.y-Math.cos(a.angle*RAD)*hh;
+  return x>size*.3&&x<w-size*.3&&y>size*.3&&y<h-size*.3;
  }
  function draw(dt){
-  var p=pose(position),quiet=reduced.matches||paused,m=quiet?0:1;
-  var wave=Math.sin(step),breath=Math.sin(clock*2.0),sleep=state==='sleep',playing=state==='play',happy=state==='happy';
-  var hop=playing?Math.max(0,Math.sin(age*5.2))*11:happy?Math.max(0,Math.sin(age*7))*5:0;
-  var tuck=state==='peek'?(1-Math.min(1,age/2.4))*size*.72:0;
-  // Move along the perimeter tangent, keeping the body on the inside of the frame.
-  anchor.style.transform='translate('+p.x.toFixed(2)+'px,'+p.y.toFixed(2)+'px) rotate('+p.angle.toFixed(2)+'deg)';
+  var p=pose(),quiet_=quiet(),m=quiet_?0:1;
+  var wave=Math.sin(step),breath=Math.sin(clock*2.0),sleep=state==='sleep',playing=state==='play',happy=state==='happy',held=state==='held',flying=state==='fly';
+  var hop=mode!=='walk'?0:playing?Math.max(0,Math.sin(age*5.2))*11:happy?Math.max(0,Math.sin(age*7))*5:0;
+  var tuck=state==='peek'&&mode==='walk'?(1-Math.min(1,age/2.4))*size*.72:0;
+  var sway=held?Math.sin(clock*7)*7:0;
+  anchor.style.transform='translate('+p.x.toFixed(2)+'px,'+p.y.toFixed(2)+'px) rotate('+(p.angle+sway).toFixed(2)+'deg)';
   pet.style.transform='translate(-50%,'+((tuck-hop)*m).toFixed(2)+'px)';
   $('facing').setAttribute('transform',direction>0?'translate(120 0) scale(-1 1)':'');
-  var crawl=state==='crawl'?1:0;
-  var sy=sleep ? .91+breath*.012*m : 1+wave*.045*crawl*m+breath*.006*m;
-  var sx=sleep?1.05:1-wave*.055*crawl*m;
+  var crawl=(state==='crawl'||held||flying)?1:0;
+  var sy=sleep ? .91+breath*.012*m : flying&&fly&&fly.vy<0?1.08:1+wave*.045*crawl*m+breath*.006*m;
+  var sx=sleep?1.05:flying&&fly&&fly.vy<0?.94:1-wave*.055*crawl*m;
   $('body').setAttribute('transform','translate(60 127) scale('+sx.toFixed(4)+' '+sy.toFixed(4)+') translate(-60 -127)');
   var headY=sleep?13+breath*.55*m:crawl?wave*1.8*m:-breath*.7*m;
   var angle=sleep?13:happy?-5+Math.sin(age*9)*4*m:playing?Math.sin(age*5.2)*7*m:state==='idle'?Math.sin(age*1.3)*3*m:wave*2*crawl*m;
   $('head').setAttribute('transform','translate('+(sleep?6:0)+' '+headY.toFixed(2)+') rotate('+angle.toFixed(2)+' 62 66)');
-  $('arm').setAttribute('transform',happy||playing?'rotate('+(-18+Math.sin(age*9)*17*m).toFixed(2)+' 39 69)':'');
+  $('arm').setAttribute('transform',happy||playing||held||flying?'rotate('+(-18+Math.sin(age*9)*17*m).toFixed(2)+' 39 69)':'');
   $('tail').setAttribute('transform','rotate('+((sleep?-8:0)+(crawl?wave*6:breath*2)*m).toFixed(2)+' 70 113)');
   $('foot-a').setAttribute('transform','translate('+(wave*1.8*crawl*m).toFixed(2)+' 0)');
   $('foot-b').setAttribute('transform','translate('+(-wave*1.8*crawl*m).toFixed(2)+' 0)');
+  $('shadow').style.opacity=mode==='walk'?'':'0';
   pet.dataset.eyes=sleep||clock<eyeUntil?'closed':'open';
-  var spark=$('spark');spark.textContent=sleep?'z z':happy?'♥':playing?'✧':'';
-  spark.style.opacity=spark.textContent?(quiet?'.7':String(.5+.35*Math.sin(clock*2))):'0';
+  var spark=$('spark');spark.textContent=sleep?'z z':happy?'♥':playing?'✧':held?'!':'';
+  spark.style.opacity=spark.textContent?(quiet_?'.7':String(.5+.35*Math.sin(clock*2))):'0';
   spark.style.transform='translateY('+(-3+Math.sin(clock)*3*m).toFixed(2)+'px)';
-  pet.setAttribute('aria-label',sleep?'Wake Grub. He is sleeping.':'Pet Grub. Right-click or press Shift Enter for his menu.');
+  pet.setAttribute('aria-label',sleep?'Wake Grub. He is sleeping.':'Pet Grub. Hold and drag to move him. Right-click or press Shift Enter for his menu.');
  }
  function visibleOverlay(){
   return ['scrim','day','night','saver'].some(function(id){var e=document.getElementById(id);return e&&!e.hidden&&getComputedStyle(e).display!=='none';});
  }
  function checkEnvironment(){
-  blocked=visibleOverlay();root.hidden=!enabled||blocked;toggle.hidden=blocked;if(blocked)closeMenu(false);
-  if(!blocked&&enabled&&menu.hidden){
+  blocked=visibleOverlay();root.hidden=!enabled||blocked;toggle.hidden=blocked;if(blocked){closeMenu(false);if(grab)release();}
+  if(blocked||!enabled)return;
+  refreshBoxes();
+  if(mode!=='walk'){pet.style.opacity='1';pet.style.pointerEvents='auto';return;}
+  if(menu.hidden){
    var box=pet.getBoundingClientRect(),nav=document.getElementById('nav');
-   // Avoid the navigation dock and whichever control the user is interacting with.
+   // Avoid the navigation dock and the small controls; he may crawl over the big boxes.
    var obstacles=[],soft=[];
    if(nav&&nav.classList.contains('show'))obstacles.push(nav.getBoundingClientRect());
    document.querySelectorAll('button,a[href],input,select,textarea,[role="button"]').forEach(function(el){
     if(el===pet||el===toggle||menu.contains(el)||el.closest('#nav'))return;
     var r=el.getBoundingClientRect();if(!r.width||!r.height)return;
-    // Whole cards are tappable too; he may crawl over their edges, just a little see-through.
     if(r.width*r.height>40000)soft.push(r);else obstacles.push(r);
    });
    var focused=document.activeElement;
    if(focused&&focused!==document.body&&!focused.closest('#qj-grub-menu')&&focused!==pet&&focused!==toggle&&focused.matches('button,input,select,textarea,a'))obstacles.push(focused.getBoundingClientRect());
    var hit=function(r){return box.left<r.right+8&&box.right>r.left-8&&box.top<r.bottom+8&&box.bottom>r.top-8;};
    var collision=obstacles.some(hit),over=soft.some(function(r){return box.left<r.right&&box.right>r.left&&box.top<r.bottom&&box.bottom>r.top;});
-   if(!collision&&over){pet.style.opacity='.8';pet.style.pointerEvents='auto';}
-   else if(collision){pet.style.opacity='.16';pet.style.pointerEvents='none';if(clock>avoidUntil&&!paused&&!reduced.matches){direction*=-1;setState('crawl',4);avoidUntil=clock+4;}}
+   if(!collision&&over){pet.style.opacity='.85';pet.style.pointerEvents='auto';}
+   else if(collision){pet.style.opacity='.16';pet.style.pointerEvents='none';if(clock>avoidUntil&&!paused&&!reduced.matches){if(!upright()&&Math.random()<.5)startDrop();else{direction*=-1;setState('crawl',4);}avoidUntil=clock+4;}}
    else{pet.style.opacity='1';pet.style.pointerEvents='auto';}
   }
  }
@@ -2291,23 +2398,32 @@ if (typeof module !== 'undefined') module.exports = QJ;
   raf=0;if(destroyed||document.hidden||!enabled)return;
   var dt=last?Math.min((ts-last)/1000,.05):0;last=ts;
   if(ts>checkAt){checkAt=ts+300;checkEnvironment();}
-  if(!blocked&&menu.hidden){
-   if(!paused){
+  var busy=mode!=='walk';
+  if(!blocked&&(menu.hidden||busy)){
+   if(!paused||busy){
     clock+=dt;age+=dt;
     if(clock>blinkAt){eyeUntil=clock+.14;blinkAt=clock+3+Math.random()*5;}
-    if(!reduced.matches){
+    if(mode==='fly'){stepFly(dt);step+=dt*16;}
+    else if(mode==='place'){stepPlace(dt);step+=dt*12;}
+    else if(mode==='held'){step+=dt*14;}
+    else if(!reduced.matches&&!paused){
      if(state==='crawl'){
-      var speed=30*(size/82)*(1+.28*Math.sin(step));
-      position=((position+direction*speed*dt/length)%1+1)%1;step+=dt*7;
+      if(!roomAhead()){if(upright())direction*=-1;else{startDrop();}}
+      if(mode==='walk'){
+       var speed=30*(size/82)*(1+.28*Math.sin(step));
+       position=((position+direction*speed*dt/cur.length)%1+1)%1;step+=dt*7;
+      }
      }
-     if(age>=duration)nextState();
+     if(mode==='walk'&&age>=duration)nextState();
     }
    }
-   if(!paused)draw(dt);
+   draw(dt);
   }
-  if(paused||reduced.matches||blocked){timer=setTimeout(function(){timer=0;start();},250);}else raf=requestAnimationFrame(loop);
+  var still=mode==='walk'&&(paused||reduced.matches);
+  if(still||blocked){timer=setTimeout(function(){timer=0;start();},250);}else raf=requestAnimationFrame(loop);
  }
  function start(){if(!raf&&!timer&&!document.hidden&&enabled&&!destroyed){last=0;raf=requestAnimationFrame(loop);}}
+ function kick(){cancelAnimationFrame(raf);clearTimeout(timer);raf=0;timer=0;start();}
  function closeMenu(focus){menu.hidden=true;toggle.setAttribute('aria-expanded','false');if(focus)toggle.focus();}
  function openMenu(){menu.hidden=false;toggle.setAttribute('aria-expanded','true');refreshButtons();menu.querySelector('[data-grub=roam]').focus();}
  function refreshButtons(){menu.querySelector('[data-grub=hide]').textContent=enabled?'Hide Grub':'Bring Grub back';menu.querySelector('[data-grub=pause]').textContent=paused?'Resume':'Pause';}
@@ -2319,29 +2435,72 @@ if (typeof module !== 'undefined') module.exports = QJ;
    if(action==='sleep'){setState('sleep',35);announce('Grub curls up for a nap.');}
    if(action==='play'){setState('play',4.5);announce('Grub does a happy little wiggle.');}
    if(action==='roam'){setState(reduced.matches?'idle':'crawl',14);announce(reduced.matches?'Grub is awake. Reduced motion keeps him settled.':'Grub is off exploring.');}
+   if(action==='hop'&&mode==='walk'){if(upright())hopSomewhere();else startDrop();}
    start();
   }
   refreshButtons();save();closeMenu(true);draw(0);
  }
- function petGrub(){paused=false;if(state==='sleep'){setState('wake',2.4);announce('Grub wakes up and stretches.');}else{setState('happy',3);announce('Grub likes his little head pat.');}save();draw(0);}
+ function petGrub(){paused=false;if(state==='sleep'){setState('wake',2.4);announce('Grub wakes up and stretches.');}else if(mode==='walk'){setState('happy',3);announce('Grub likes his little head pat.');}save();draw(0);}
+ // Hold and drag: a quick tap is a pat; holding or dragging picks him up.
+ function pickUp(){
+  if(!grab||grab.up)return;grab.up=true;
+  if(mode==='walk')liftOff();
+  mode='held';fly=null;place=null;grab.vx=0;grab.vy=0;
+  pet.style.opacity='1';pet.style.pointerEvents='auto';setState('held',99);announce('You picked Grub up.');
+  follow(grab.x,grab.y,0);kick();
+ }
+ function follow(x,y,dt){
+  var nx=Math.max(size*.4,Math.min(w-size*.4,x)),ny=Math.max(size*.4,Math.min(h-size*.2,y+size*.15));
+  if(dt>0){grab.vx=grab.vx*.6+(nx-body.x)/dt*.4;grab.vy=grab.vy*.6+(ny-body.y)/dt*.4;}
+  body.x=nx;body.y=ny;body.a=Math.max(-25,Math.min(25,grab.vx*.015));
+  if(Math.abs(grab.vx)>40)direction=grab.vx>0?1:-1;
+  draw(0);
+ }
+ function release(){
+  if(!grab)return;var g=grab;grab=null;clearTimeout(g.hold);
+  if(!g.up)return;suppressUntil=Date.now()+450;
+  refreshBoxes();
+  // Let go over (or right next to) a box: he settles onto its nearest edge. Elsewhere he drops.
+  var target=null,pad=size*.6;
+  boxes.forEach(function(b){if(body.x>b.l-pad&&body.x<b.r+pad&&body.y>b.t-pad&&body.y<b.b+pad)target=b;});
+  if(target){var inside=body.x>target.l+target.rad&&body.x<target.r-target.rad&&body.y>target.t&&body.y<target.b;
+   // Over the middle of a box he goes on top of it; beside a box he holds on to the nearest edge.
+   var p=inside?(body.x-target.l-target.rad)/target.length:nearestOn(target,body.x,body.y);mode='place';place={s:target,p:p,t:0,T:.32,x0:body.x,y0:body.y,a0:body.a};setState('fly',99);announce('Grub is on the box now.');}
+  else{startFlyFromHeld(Math.max(-900,Math.min(900,g.vx||0)),Math.max(-900,Math.min(600,g.vy||0)));announce('Wheee.');}
+  kick();
+ }
+ function startFlyFromHeld(vx,vy){mode='fly';fly={vx:vx,vy:vy};setState('fly',99);}
+ pet.addEventListener('pointerdown',function(e){
+  if(e.button!==0)return;e.stopPropagation();
+  try{pet.setPointerCapture(e.pointerId);}catch(_){}
+  grab={id:e.pointerId,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,up:false,t:performance.now()};
+  grab.hold=setTimeout(pickUp,260);
+ });
+ pet.addEventListener('pointermove',function(e){
+  if(!grab||e.pointerId!==grab.id)return;
+  var now=performance.now(),dt=(now-grab.t)/1000;grab.t=now;grab.x=e.clientX;grab.y=e.clientY;
+  if(!grab.up&&Math.abs(grab.x-grab.x0)+Math.abs(grab.y-grab.y0)>8)pickUp();
+  if(grab&&grab.up){e.preventDefault();follow(grab.x,grab.y,Math.max(.008,dt));}
+ });
+ pet.addEventListener('pointerup',function(e){if(grab&&e.pointerId===grab.id){e.stopPropagation();release();}});
+ pet.addEventListener('pointercancel',function(e){if(grab&&e.pointerId===grab.id)release();});
+ pet.addEventListener('lostpointercapture',function(e){if(grab&&e.pointerId===grab.id)release();});
  toggle.addEventListener('click',function(e){e.stopPropagation();if(menu.hidden)openMenu();else closeMenu(true);});
  menu.addEventListener('click',function(e){var b=e.target.closest('[data-grub]');if(b)act(b.dataset.grub);});
- pet.addEventListener('click',function(e){e.stopPropagation();if(suppressClick){suppressClick=false;return;}petGrub();});
- pet.addEventListener('contextmenu',function(e){e.preventDefault();openMenu();});
+ pet.addEventListener('click',function(e){e.stopPropagation();if(Date.now()<suppressUntil)return;petGrub();});
+ pet.addEventListener('contextmenu',function(e){e.preventDefault();if(grab){clearTimeout(grab.hold);if(grab.up)release();grab=null;}openMenu();});
  pet.addEventListener('keydown',function(e){if((e.shiftKey&&e.key==='Enter')||e.key==='ContextMenu'){e.preventDefault();openMenu();}});
- pet.addEventListener('pointerdown',function(e){if(e.pointerType==='touch'){longPress=setTimeout(function(){suppressClick=true;openMenu();},650);}});
- ['pointerup','pointercancel','pointerleave'].forEach(function(name){pet.addEventListener(name,function(){clearTimeout(longPress);});});
  document.addEventListener('pointerdown',function(e){if(!menu.hidden&&!menu.contains(e.target)&&e.target!==toggle)closeMenu(false);});
  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!menu.hidden){closeMenu(true);}});
  window.addEventListener('resize',dimensions);if(window.visualViewport)visualViewport.addEventListener('resize',dimensions);
  document.addEventListener('visibilitychange',function(){if(document.hidden){cancelAnimationFrame(raf);clearTimeout(timer);timer=0;raf=0;save();}else start();});
  window.addEventListener('pagehide',save);
- function reducedChange(){if(reduced.matches)setState('idle',5);draw(0);}
+ function reducedChange(){if(reduced.matches&&mode==='walk')setState('idle',5);draw(0);}
  if(reduced.addEventListener)reduced.addEventListener('change',reducedChange);else reduced.addListener(reducedChange);
  // Observe only visibility attributes of app overlays, never the animated SVG.
  var observer=new MutationObserver(checkEnvironment);
  ['scrim','day','night','saver','nav'].forEach(function(id){var el=document.getElementById(id);if(el)observer.observe(el,{attributes:true,attributeFilter:['hidden','class','style']});});
- window.QJ_GRUB={action:act,state:function(){return {state:state,enabled:enabled,paused:paused,position:position,reducedMotion:reduced.matches,blocked:blocked,edge:pose(position),size:size};}};
+ window.QJ_GRUB={action:act,hop:function(){if(mode==='walk'){if(upright())hopSomewhere();else startDrop();kick();}},state:function(){var p=pose();return {state:state,mode:mode,on:cur===screen?'screen':(cur.el.className||'box'),enabled:enabled,paused:paused,position:position,reducedMotion:reduced.matches,blocked:blocked,edge:p,size:size,boxes:boxes.length};}};
  if(reduced.matches)setState('idle',5);dimensions();checkEnvironment();refreshButtons();start();
 })();
 </script>
